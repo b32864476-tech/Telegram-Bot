@@ -115,6 +115,13 @@ button{touch-action:manipulation}
 #roofwrap{border-color:var(--violet);box-shadow:0 10px 0 #5A4BC4,0 24px 60px rgba(0,0,0,.45);background:#0B0828}
 #digwrap{border-color:#E8812A;box-shadow:0 10px 0 #9A5414,0 24px 60px rgba(0,0,0,.45);background:#05040C}
 .ctl{display:none;width:100%;max-width:760px;gap:12px}
+.inj{display:none}
+.char-s .inj,.char-r .inj,.char-d .inj{display:flex;visibility:hidden;min-height:46px;align-items:center;justify-content:center;gap:10px 14px;flex-wrap:wrap;font-weight:800;font-size:14px;color:var(--coral);text-align:center}
+.inj.on{visibility:visible}
+.inj .pill{background:var(--coral);border-color:var(--coral);color:var(--paper);min-width:0;padding:8px 16px;font-size:12px}
+.inj .pill:disabled{opacity:.5;cursor:not-allowed}
+.injg{opacity:0;transition:opacity .4s}
+.hurt-head .inj-plaster,.hurt-conc .inj-plaster,.hurt-conc .inj-stars,.hurt-arm .inj-cast,.hurt-leg .inj-legcast{opacity:1}
 .char-r #roofctl,.char-d #digctl{display:grid}
 .pads3{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:10px}
 .pads2{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
@@ -233,6 +240,7 @@ button{touch-action:manipulation}
         <button class="char" id="ch-d" type="button" aria-pressed="false" disabled><span class="av" id="av-d">🔒</span>Никита Диггер <small id="ch-d-lock">1 млрд</small></button>
       </div>
       <div class="rank">Звание<b id="rank">Просто Никита</b></div>
+      <div class="inj" id="inj"><span id="injtxt">🩹 Травм нет</span><button class="pill" id="heal" type="button">🏥 Травмпункт</button></div>
       <div class="stagewrap" id="stagewrap">
         <div class="aura"></div>
         <div class="clones" id="clones"></div>
@@ -337,11 +345,15 @@ button{touch-action:manipulation}
               <path class="trk t-cape" d="M70 -134 Q10 -120 -40 -80 Q0 -96 26 -88 Q16 -66 -12 -40 Q40 -66 54 -100Z" fill="#E0304D"/>
               <path d="M44 -76 L88 -60 L70 -22" fill="none" stroke="#2E2A4A" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M66 -20 h22" stroke="#F4F0FF" stroke-width="9" stroke-linecap="round"/>
+              <path class="injg inj-legcast" d="M88 -60 L72 -26" stroke="#F4F0FF" stroke-width="19" stroke-linecap="round"/>
               <path d="M44 -76 L68 -140" stroke="#0E0B22" stroke-width="32" stroke-linecap="round"/>
               <path d="M68 -130 L96 -112 L112 -104" fill="none" stroke="#0E0B22" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+              <path class="injg inj-cast" d="M86 -118 L110 -105" stroke="#F4F0FF" stroke-width="17" stroke-linecap="round"/>
               <text x="50" y="-100" transform="rotate(-69 50 -100)" font-family="Unbounded, sans-serif" font-size="9" font-weight="700" fill="#F4F0FF">MCKENZIE</text>
               <g id="headg" transform="translate(78 -180) rotate(-4)">
                 <image href="head.png" x="-34" y="-45" width="68" height="90"/>
+                <g class="injg inj-plaster" transform="rotate(-25 16 12)"><rect x="4" y="7" width="24" height="10" rx="3" fill="#F4F0FF" stroke="#E0B89A" stroke-width="1"/><path d="M13 7 V17 M19 7 V17" stroke="#E0B89A" stroke-width="1.5"/></g>
+                <g class="injg inj-stars"><g><animateTransform attributeName="transform" type="rotate" from="0 0 -66" to="360 0 -66" dur="1.4s" repeatCount="indefinite"/><text x="34" y="-60" font-size="18">⭐</text><text x="-48" y="-62" font-size="16">⭐</text><text x="-8" y="-100" font-size="14">✨</text></g></g>
                 <g class="trk t-helmet">
                   <!-- motocross helmet: shell, chin guard, peak, goggles on the forehead -->
                   <path d="M-44 30 Q-52 -26 -24 -52 Q4 -72 34 -54 Q50 -42 46 -14 L32 -12 Q30 -34 2 -38 Q-24 -36 -28 -6 L-30 34 Z" fill="url(#helmShell)" stroke="#120E33" stroke-width="4" stroke-linejoin="round"/>
@@ -607,7 +619,7 @@ button{touch-action:manipulation}
     layoutClones();
   };
   addEventListener('resize', layoutClones);
-  const setChar = c => { if (!unlocked(c)) return; S.char = c; save(); applyGear(); if (tab === 'trick') renderShop(); update(); sizeRide(); sizeRoof(); sizeDig(); };
+  const setChar = c => { if (!unlocked(c)) return; S.char = c; save(); applyGear(); if (tab === 'trick') renderShop(); update(); sizeRide(); sizeRoof(); sizeDig(); injUI(); };
   ['n', 's', 'r', 'd'].forEach(c => { $('ch-' + c).onclick = () => setChar(c); });
 
   let toastT;
@@ -710,6 +722,49 @@ button{touch-action:manipulation}
   document.addEventListener('selectstart', e => e.preventDefault());
 
 
+  // ===== injuries (cartoon, no gore): falls hurt, protective gear helps, time heals =====
+  const INJ = {
+    bruise: { e:'🩹', t:'Синяк',           sec:20,  mult:1,  lvl:0 },
+    knee:   { e:'🦵', t:'Ушиб колена',     sec:40,  mult:.8, lvl:1 },
+    sprain: { e:'💪', t:'Растяжение руки', sec:50,  mult:.7, lvl:1 },
+    conc:   { e:'😵', t:'Сотрясение',      sec:70,  mult:.5, lvl:2 },
+    arm:    { e:'🦴', t:'Перелом руки',    sec:120, mult:.4, lvl:3 },
+    leg:    { e:'🦿', t:'Перелом ноги',    sec:120, mult:.4, lvl:3 }
+  };
+  const HELMET = { s:'helmet', r:null, d:'helmet2' }, GLOVES = { s:null, r:'rgloves', d:null };
+  if (!S.inj) S.inj = {};
+  const injOf = c => { const i = S.inj[c]; if (i && i.until > Date.now()) return i; if (i) delete S.inj[c]; return null; };
+  const injIs = (c, ...ks) => { const i = injOf(c); return !!i && ks.includes(i.k); };
+  const injMult = c => { const i = injOf(c); return i ? INJ[i.k].mult : 1; };
+  const legMult = c => (injIs(c, 'leg') ? .6 : injIs(c, 'knee') ? .8 : 1);
+  const injure = (c, sev) => {
+    const pool = sev < .35 ? ['bruise', 'bruise', 'knee'] : sev < .7 ? ['knee', 'sprain', 'bruise', 'conc'] : ['sprain', 'conc', 'arm', 'leg', 'knee'];
+    let k = pool[Math.floor(Math.random() * pool.length)], saved = '';
+    if (k === 'conc' && HELMET[c] && own(HELMET[c])) { k = 'bruise'; saved = 'Шлем спас от сотрясения'; }
+    if ((k === 'arm' || k === 'sprain') && GLOVES[c] && own(GLOVES[c]) && Math.random() < .5) { k = 'bruise'; saved = 'Перчатки смягчили удар'; }
+    const cur = injOf(c);
+    if (cur && INJ[cur.k].lvl > INJ[k].lvl) { cur.until += INJ[k].sec * 500; save(); return; }
+    S.inj[c] = { k, until: Date.now() + INJ[k].sec * 1000 }; save();
+    toast(INJ[k].e, INJ[k].t, saved || 'Травма! Заживёт за ' + INJ[k].sec + ' с');
+    injUI();
+  };
+  const healCost = () => perClick() * 300;
+  const HURT = { bruise:'head', conc:'conc', sprain:'arm', arm:'arm', knee:'leg', leg:'leg' };
+  function injUI() {
+    const c = S.char, i = SPECIAL[c] ? injOf(c) : null, box = $('inj');
+    for (const x of ['head', 'arm', 'leg', 'conc']) app.classList.toggle('hurt-' + x, !!i && HURT[i.k] === x);
+    box.classList.toggle('on', !!i);
+    if (!i) return;
+    const left = Math.max(0, Math.ceil((i.until - Date.now()) / 1000));
+    $('injtxt').textContent = `${INJ[i.k].e} ${INJ[i.k].t} · заживёт через ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')} · крутость ×${INJ[i.k].mult}`;
+    $('heal').textContent = '🏥 Травмпункт · ' + fmt(healCost());
+    $('heal').disabled = S.score < healCost();
+  }
+  $('heal').addEventListener('click', () => {
+    const c = S.char; if (!injOf(c) || S.score < healCost()) return;
+    S.score -= healCost(); delete S.inj[c]; save(); toast('🏥', 'Вылечился', 'Травмпункт помог'); injUI(); update();
+  });
+
   // ===== Stantuletsky: wheelie physics on a pit bike =====
   // World units = SVG viewBox units (960×480). Bike pivots around the rear axle.
   const $$ = id => document.getElementById(id);
@@ -769,7 +824,7 @@ button{touch-action:manipulation}
   // ----- riding physics -----
   const rideStep = dt => {
     const r = ride;
-    r.thr += ((r.gas ? 1 : 0) - r.thr) * Math.min(1, dt * 7);     // throttle needs a moment to bite
+    r.thr += ((r.gas ? 1 : 0) - r.thr) * Math.min(1, dt * (injIs('s', 'arm', 'sprain') ? 3 : 7));   // hurt arm = sluggish throttle     // throttle needs a moment to bite
     r.brk += ((r.brake ? 1 : 0) - r.brk) * Math.min(1, dt * 12);
     const cruise = 22 + r.thr * 58;                                // throttle sets the speed the bike pulls toward
     r.v = Math.max(10, Math.min(90, r.v + ((cruise - r.v) * .55 - r.brk * 22) * dt));
@@ -793,7 +848,7 @@ button{touch-action:manipulation}
     if (r.zone === 'ground' || r.zone === 'cruise') { r.t = 0; r.nextFlip = 12; } else r.t += dt;
     r.combo = 1 + Math.min(4, r.t / 5);
     const speedK = .5 + r.v / 60;
-    r.rate = r.zone === 'ground' ? 0 : r.zone === 'cruise' ? perClick() * 1.2 * speedK * (r.v / 30) : perClick() * 6 * r.combo * speedK * (scrape ? 2 : 1);
+    r.rate = r.zone === 'ground' ? 0 : r.zone === 'cruise' ? perClick() * 1.2 * speedK * (r.v / 30) * injMult('s') : perClick() * 6 * r.combo * speedK * (scrape ? 2 : 1) * injMult('s');
     if (r.rate) {
       gain(r.rate * dt); r.acc += r.rate * dt; r.txtT += dt;
       if (r.txtT > .7) { addText(HUB_X + 230, 250, '+' + fmt(r.acc), scrape ? '#FFC93C' : '#5BE3B5'); r.txtT = 0; r.acc = 0; }
@@ -826,6 +881,7 @@ button{touch-action:manipulation}
     r.zone = 'crash'; r.rate = 0; r.t = 0; r.combo = 1; r.gas = r.brake = false;
     $$('gas').classList.remove('held'); $$('brake').classList.remove('held');
     addText(HUB_X + 40, 160, 'ПЕРЕВОРОТ!', '#FF5D73');
+    injure('s', Math.min(1, .3 + r.v / 80));
   };
   const crashStep = dt => {
     const r = ride, c = r.crash;
@@ -972,6 +1028,7 @@ button{touch-action:manipulation}
     else if (pose === 'air') { f1 = [16, -14]; f2 = [-14, -4]; h1 = [22, -86]; h2 = [-14, -80]; }
     else if (pose === 'hang') { f1 = [4 + 6 * s, -2]; f2 = [-6 - 6 * s, 0]; h1 = [10, -118]; h2 = [0, -120]; }
     else { f1 = [18 * s, -10]; f2 = [-18 * s, -2]; h1 = [-14 + 8 * s, -124]; h2 = [24 - 8 * s, -120]; }
+    if (fit.inj === 'arm' && pose !== 'fall') h1 = [16, -68];   // arm in a sling
     const hip = [0, -48], sh = [4, -88];
     const k1 = [(hip[0] + f1[0]) / 2 + 7, (hip[1] + f1[1]) / 2], k2 = [(hip[0] + f2[0]) / 2 + 7, (hip[1] + f2[1]) / 2];
     const line = (pts, w, c) => { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.stroke(); };
@@ -992,6 +1049,13 @@ button{touch-action:manipulation}
     if (fit.hat === 'beanie') { g.fillStyle = '#FF5D73'; g.beginPath(); g.arc(6, -110, 14, Math.PI, 0); g.fill(); g.fillRect(-9, -112, 30, 5); g.beginPath(); g.arc(6, -126, 4, 0, 7); g.fill(); }
     if (fit.hat === 'helmet') { g.fillStyle = '#FFC93C'; g.beginPath(); g.arc(6, -108, 16, Math.PI, 0); g.fill(); g.fillRect(-12, -110, 36, 5); g.fillStyle = '#F4F0FF'; g.fillRect(17, -120, 8, 8); }
     if (fit.hat === 'bandana') { g.fillStyle = '#8C7BFF'; g.beginPath(); g.arc(6, -108, 14, Math.PI, 0); g.fill(); g.fillRect(-12, -110, 8, 12); }
+    const ij = fit.inj;
+    if (ij === 'bruise' || ij === 'conc') { g.save(); g.translate(13, -99); g.rotate(-.5); g.fillStyle = '#F4F0FF'; g.fillRect(-8, -3.5, 16, 7); g.strokeStyle = '#E0B89A'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-2, -3.5); g.lineTo(-2, 3.5); g.moveTo(2, -3.5); g.lineTo(2, 3.5); g.stroke(); g.restore(); }
+    if (ij === 'conc') { g.fillStyle = '#FFC93C'; for (let i = 0; i < 3; i++) { const a = t * 4 + i * 2.1; sparkle(g, 6 + Math.cos(a) * 22, -130 + Math.sin(a) * 7, 6); } }
+    if (ij === 'sprain') line([[(sh[0] + h1[0]) / 2, (sh[1] + h1[1]) / 2], h1], 11, '#E8C9A0');
+    if (ij === 'arm') { line([sh, h1], 13, '#F4F0FF'); g.globalAlpha = .85; g.fillStyle = '#5BE3B5'; g.beginPath(); g.moveTo(-2, -92); g.lineTo(24, -66); g.lineTo(2, -60); g.closePath(); g.fill(); g.globalAlpha = 1; }
+    if (ij === 'knee') { g.fillStyle = '#F4F0FF'; g.fillRect(k1[0] - 6, k1[1] - 4, 12, 8); }
+    if (ij === 'leg') line([hip, k1, f1], 14, '#F4F0FF');
     g.restore();
   };
 
@@ -1015,17 +1079,17 @@ button{touch-action:manipulation}
   resetRoof();
   const under = x => roof.blds.find(b => x >= b.x && x <= b.x + b.w);
   const rText = (txt, col) => roof.txt.push({ x: roof.x - roof.cam + 40, y: roof.y - 150, txt, col, life: 1.1 });
-  const roofGain = () => (own('gopro') ? 1.5 : 1);
+  const roofGain = () => (own('gopro') ? 1.5 : 1) * injMult('r');
   const doJump = () => {
     if (roof.state !== 'run') { roof.charge = 0; return; }
     const c = Math.min(1, roof.charge);
-    roof.vy = -(380 + 330 * c); roof.vx = RUN * (1 + .07 * Math.min(6, own('grip')));
+    roof.vy = -(380 + 330 * c) * (legMult('r') < 1 ? .9 : 1); roof.vx = RUN * legMult('r') * (1 + .07 * Math.min(6, own('grip')));
     roof.state = 'air'; roof.charge = 0;
   };
   const roofHand = h => {
     const hg = roof.hang; if (roof.state !== 'hang' || !hg) return;
     if (hg.lastHand === h) { hg.prog = Math.max(0, hg.prog - .05); return; }
-    hg.lastHand = h; hg.prog += .13 * (1 + .25 * Math.min(6, own('rgloves')));
+    hg.lastHand = h; hg.prog += .13 * (1 + .25 * Math.min(6, own('rgloves'))) * (injIs('r', 'sprain') ? .6 : 1);
     if (hg.prog >= 1) {
       roof.state = 'run'; roof.x = hg.b.x + 14; roof.y = hg.b.top; roof.vy = 0; roof.vx = RUN; roof.last = hg.b; roof.hang = null;
       const bonus = perClick() * 20 * roofGain(); gain(bonus); rText('Залез! +' + fmt(bonus), '#5BE3B5');
@@ -1038,7 +1102,7 @@ button{touch-action:manipulation}
     const bonus = perClick() * 150 * (own('cam') ? 3 : 1) * roofGain(); gain(bonus);
     rText((auto ? '🚁 ' : '📸 ') + '+' + fmt(bonus), '#FFC93C');
   };
-  const roofFall = () => { roof.state = 'fall'; roof.fallT = 1.5; roof.combo = 1; roof.vx *= .25; roof.hang = null; rText('Сорвался! Тент спас', '#FF5D73'); };
+  const roofFall = () => { roof.state = 'fall'; roof.fallT = 1.5; roof.combo = 1; roof.vx *= .25; roof.hang = null; rText('Сорвался! Тент спас', '#FF5D73'); injure('r', .45 + Math.random() * .55); };
 
   pressHold($('hj'), () => { roof.jumpHeld = true; }, () => { roof.jumpHeld = false; doJump(); });
   pressHold($('hl'), () => roofHand('L'));
@@ -1058,7 +1122,7 @@ button{touch-action:manipulation}
     if (r.jumpHeld && r.state === 'run') r.charge = Math.min(1, r.charge + dt / .55);
     const prevX = r.x, prevY = r.y;
     if (r.state === 'run') {
-      r.x += RUN * dt; r.ph += dt * 14; r.dist += RUN * dt;
+      const sp = RUN * legMult('r'); r.x += sp * dt; r.ph += dt * 14 * legMult('r'); r.dist += sp * dt;
       const b = under(r.x);
       if (!b) {
         if (r.jumpHeld) { r.jumpHeld = false; $('hj').classList.remove('held'); doJump(); }  // still holding at the edge: jump with the charge so far
@@ -1071,7 +1135,7 @@ button{touch-action:manipulation}
         const front = r.x + 10, pf = prevX + 10;
         for (const b of r.blds) {
           if (pf < b.x && front >= b.x && r.y > b.top + 2) {
-            if (r.y - 118 <= b.top + 12) { r.state = 'hang'; r.hang = { b, prog: 0, grip: 1, lastHand: null }; r.x = b.x - 12; r.y = b.top + 114; r.vy = 0; r.ph = 0; }
+            if (r.y - 118 <= b.top + 12 && !injIs('r', 'arm')) { r.state = 'hang'; r.hang = { b, prog: 0, grip: 1, lastHand: null }; r.x = b.x - 12; r.y = b.top + 114; r.vy = 0; r.ph = 0; }
             else roofFall();
             break;
           }
@@ -1133,7 +1197,7 @@ button{touch-action:manipulation}
     }
     const px = r.x - r.cam, pose = r.state === 'run' ? 'run' : r.state;
     if (r.charge > 0 && r.state === 'run') { g.strokeStyle = '#FFC93C'; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.arc(px + 4, r.y - 60, 72, -Math.PI / 2, -Math.PI / 2 + r.charge * Math.PI * 2); g.stroke(); }
-    drawGuy(g, { x: px, y: r.y, ph: r.ph, pose, t: r.t, fit: { hood: '#0E0B22', pants: '#2E2A4A', hat: 'beanie', pack: own('pack') > 0, gloves: own('rgloves') ? '#5BE3B5' : null, cam: own('cam') > 0, scarf: own('scarf') > 0 } });
+    drawGuy(g, { x: px, y: r.y, ph: r.ph, pose, t: r.t, fit: { inj: (injOf('r') || {}).k, hood: '#0E0B22', pants: '#2E2A4A', hat: 'beanie', pack: own('pack') > 0, gloves: own('rgloves') ? '#5BE3B5' : null, cam: own('cam') > 0, scarf: own('scarf') > 0 } });
     if (own('drone')) {
       const dx = px + 80 + Math.sin(r.t * 2) * 10, dy = r.y - 175 + Math.sin(r.t * 3) * 8;
       g.fillStyle = '#F4F0FF'; g.fillRect(dx - 15, dy - 3, 30, 7);
@@ -1188,7 +1252,7 @@ button{touch-action:manipulation}
   const collect = (f, byDog) => {
     if (f.got) return; f.got = true;
     S.found = S.found || {}; const first = !S.found[f.k]; S.found[f.k] = (S.found[f.k] || 0) + 1;
-    const bonus = perClick() * 250 * (own('detector') ? 1.5 : 1); gain(bonus);
+    const bonus = perClick() * 250 * (own('detector') ? 1.5 : 1) * injMult('d'); gain(bonus);
     dText((byDog ? '🐕 ' : '') + ARTS[f.k][0] + ' +' + fmt(bonus), '#FFC93C');
     if (first) toast(ARTS[f.k][0], ARTS[f.k][1], 'Новая находка в коллекции');
   };
@@ -1223,18 +1287,18 @@ button{touch-action:manipulation}
       const mv = (d.right ? 1 : 0) - (d.left ? 1 : 0);
       if (mv) d.dir = mv;
       const slow = d.state === 'walk' && puddleAt(d.x) && !own('boots') ? .45 : 1;
-      d.x = Math.max(40, d.x + mv * 160 * slow * dt);
+      d.x = Math.max(40, d.x + mv * 160 * slow * legMult('d') * dt);
       if (mv && d.state === 'walk') d.ph += dt * 11 * slow;
       if (d.state === 'walk' && holeAt(d.x)) { d.state = 'drop'; d.vy = 0; }
       if (d.state === 'air' || d.state === 'drop') {
         d.vy += 1500 * dt; d.y += d.vy * dt;
         if (d.state === 'air' && d.y >= FLOOR) { if (holeAt(d.x)) d.state = 'drop'; else { d.y = FLOOR; d.vy = 0; d.state = 'walk'; } }
-        if (d.y > 560) { d.state = 'fallen'; d.fallT = 1.3; d.bat = Math.max(0, d.bat - 15); dText('Плюх! Назад к фонарю', '#FF5D73'); }
+        if (d.y > 560) { d.state = 'fallen'; d.fallT = 1.3; d.bat = Math.max(0, d.bat - 15); dText('Плюх! Назад к фонарю', '#FF5D73'); injure('d', .2 + Math.random() * .6); }
       }
     }
     if (d.lamp) { d.bat -= 7 * dt * (1 - .12 * Math.min(4, own('battery'))); if (d.bat <= 0) { d.bat = 0; d.lamp = false; dText('Фонарь сел!', '#FF5D73'); } }
     else d.bat = Math.min(maxBat(), d.bat + 5 * dt);
-    if (d.x > d.maxX) { gain(perClick() * .15 * (d.x - d.maxX)); d.maxX = d.x; }
+    if (d.x > d.maxX) { gain(perClick() * .15 * (d.x - d.maxX) * injMult('d')); d.maxX = d.x; }
     for (const f of d.feats) if (f.t === 'cp' && !f.lit && d.x > f.x) { f.lit = true; d.cp = f.x; dText('🕯️ Точка сохранения', '#5BE3B5'); }
     if (own('dog')) {
       d.dogX += (d.x - d.dir * 55 - d.dogX) * Math.min(1, dt * 3);
@@ -1286,7 +1350,7 @@ button{touch-action:manipulation}
     if (own('dog')) drawDog(g, d.dogX - d.cam, FLOOR, d.t, d.dir);
     const px = d.x - d.cam, moving = d.left || d.right;
     drawGuy(g, { x: px, y: d.y, ph: d.ph, dir: d.dir, pose: d.state === 'walk' ? (moving ? 'run' : 'stand') : d.state === 'air' ? 'air' : 'fall', t: d.t,
-      fit: { hood: '#E8812A', pants: '#3A3360', hat: own('helmet2') ? 'helmet' : 'bandana', pack: true, packC: '#6B668F', boots: own('boots') > 0, overalls: '#C96A1E' } });
+      fit: { inj: (injOf('d') || {}).k, hood: '#E8812A', pants: '#3A3360', hat: own('helmet2') ? 'helmet' : 'bandana', pack: true, packC: '#6B668F', boots: own('boots') > 0, overalls: '#C96A1E' } });
     // darkness with light cut out
     dk.setTransform(1, 0, 0, 1, 0, 0); dk.globalCompositeOperation = 'source-over'; dk.clearRect(0, 0, dark.width, dark.height);
     dk.fillStyle = 'rgba(3,2,10,.95)'; dk.fillRect(0, 0, dark.width, dark.height);
@@ -1295,7 +1359,7 @@ button{touch-action:manipulation}
     const hx = px + d.dir * 16, hy = d.y - 106;
     glow(px, d.y - 60, 60, .55);
     if (d.lamp) {
-      const len = lampLen(), sp = .42, c = d.dir > 0 ? .25 : Math.PI - .25;
+      const len = lampLen() * (injIs('d', 'conc') ? .7 + .3 * Math.random() : 1), sp = .42, c = d.dir > 0 ? .25 : Math.PI - .25;   // concussion: everything flickers
       dk.save(); dk.beginPath(); dk.moveTo(hx, hy); dk.arc(hx, hy, len, c - sp, c + sp); dk.closePath(); dk.clip();
       const gr = dk.createRadialGradient(hx, hy, 0, hx, hy, len); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.7, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
       dk.fillStyle = gr; dk.fillRect(hx - len, hy - len, len * 2, len * 2); dk.restore();
@@ -1362,7 +1426,7 @@ button{touch-action:manipulation}
     const showBB = now < boostUntil; if (bb.hidden === showBB) bb.hidden = !showBB;
     if (showBB) bb.textContent = `⭐ Буст ×7 · ${Math.ceil((boostUntil - now) / 1000)} с`;
     rideFrame(dt); roofFrame(dt); digFrame(dt);
-    acc += dt; if (acc > .1) { acc = 0; update(); rideUI(); roofUI(); digUI(); }
+    acc += dt; if (acc > .1) { acc = 0; update(); rideUI(); roofUI(); digUI(); injUI(); }
     g.clearRect(0, 0, W, H);
     const t = now / 1000;
     [['255,93,115', .45, .11, 0], ['255,201,60', .35, .09, 2], ['140,123,255', .55, .06, 4]].forEach(([c, r, s, p]) => {
@@ -1386,7 +1450,7 @@ button{touch-action:manipulation}
   applyGear(); renderShop(); sizeRide(); sizeRoof(); sizeDig(); requestAnimationFrame(loop);
 
   // test hook
-  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride, roof, dig, jump: doJump };
+  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride, roof, dig, jump: doJump, injure };
 })();
 </script>
 </body>
