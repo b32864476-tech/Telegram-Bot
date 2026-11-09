@@ -97,13 +97,31 @@ button{touch-action:manipulation}
 .speed line:nth-child(2){animation-delay:.25s}.speed line:nth-child(3){animation-delay:.45s}
 @keyframes road2{to{stroke-dashoffset:260}}
 .wheel{transform-box:fill-box;transform-origin:center;animation:spin .45s linear infinite}
-.bob{transform-box:view-box;transform-origin:150px 445px;animation:wheelie 1.6s ease-in-out infinite}
-@keyframes wheelie{50%{transform:rotate(-5deg)}}
-.bob.pop{animation:pop .35s ease}
-@keyframes pop{40%{transform:rotate(-11deg)}}
-.flip{transform-box:view-box;transform-origin:230px 330px}
-.tr-flip .flip{animation:flip 7s cubic-bezier(.6,0,.4,1) infinite}
-@keyframes flip{0%,78%{transform:none}92%{transform:translateY(-70px) rotate(-360deg)}100%{transform:rotate(-360deg)}}
+.flip{transform-box:view-box;transform-origin:275px 300px}
+.flip.doflip{animation:flip 1.1s cubic-bezier(.5,0,.4,1)}
+@keyframes flip{60%{transform:translateY(-80px) rotate(-300deg)}100%{transform:rotate(-360deg)}}
+.crashg{transform-box:view-box;transform-origin:205px 406px}
+.crashg.crash{animation:crash 1.6s ease-in forwards}
+@keyframes crash{35%{transform:rotate(-45deg)}60%{transform:rotate(-48deg) translateX(-20px);opacity:1}100%{transform:rotate(-48deg) translateX(-60px);opacity:0}}
+.char-s .nikita{cursor:default}
+.char-s .perclick{display:none}
+.nikita canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.ride{display:none;width:100%;max-width:480px;gap:12px}
+.char-s .ride{display:grid}
+.gauge{position:relative;height:18px;border-radius:99px;overflow:hidden;display:flex;background:var(--ink-2)}
+.gauge .z{height:100%}
+.z1{width:16%;background:#3A3560}.z2{width:48.5%;background:var(--mint)}.z3{width:24%;background:var(--sun)}.z4{flex:1;background:var(--coral)}
+.gauge i{position:absolute;top:-2px;bottom:-2px;left:0;width:6px;margin-left:-3px;border-radius:3px;background:var(--paper);box-shadow:0 0 0 2px var(--ink),0 0 12px var(--paper)}
+.ridestat{display:flex;justify-content:space-between;align-items:baseline;gap:12px;height:1.6em;white-space:nowrap}
+.ridestat b{font-family:var(--f-display);font-weight:900;font-size:15px;overflow:hidden;text-overflow:ellipsis}
+.ridestat span{font-family:var(--f-mono);font-size:13px;color:var(--mint);font-variant-numeric:tabular-nums}
+.st-ground{color:var(--muted)}.st-balance{color:var(--mint)}.st-scrape{color:var(--sun)}.st-crash{color:var(--coral)}
+.pedals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pedal{border:0;border-radius:20px;padding:22px 10px;font-family:var(--f-display);font-weight:900;font-size:clamp(16px,2.4vw,20px);text-transform:uppercase;cursor:pointer;touch-action:none;transition:transform .06s,box-shadow .06s}
+.pedal.brake{background:var(--coral);color:var(--paper);box-shadow:0 8px 0 #A62B40}
+.pedal.gas{background:var(--mint);color:var(--ink);box-shadow:0 8px 0 #2B9E78}
+.pedal.held{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.hint{font-size:12px;color:var(--muted);text-align:center}
 .trk{opacity:0;transition:opacity .6s}
 .tr-helmet .t-helmet,.tr-fire .t-fire,.tr-sparks .t-sparks,.tr-trophy .t-trophy,.tr-cape .t-cape{opacity:1}
 .tr-neon .rim{stroke:var(--mint);filter:drop-shadow(0 0 6px #5BE3B5)}
@@ -263,41 +281,36 @@ button{touch-action:manipulation}
             <circle cx="350" cy="250" r="70" fill="#FFC93C" opacity=".85"/>
             <path d="M0 330 V260 h40 v-40 h50 v60 h30 v-90 h60 v70 h40 v-30 h50 v50 h40 v-80 h60 v60 h40 v-20 h70 V330Z" fill="#2A1F5C" opacity=".85"/>
             <rect y="330" width="480" height="150" fill="#1B1640"/>
-            <line class="road" x1="0" y1="470" x2="480" y2="470" stroke="#FFC93C" stroke-width="6"/>
+            <line x1="0" y1="407" x2="480" y2="407" stroke="#2E2A5A" stroke-width="3"/>
+            <line class="road" x1="0" y1="438" x2="480" y2="438" stroke="#FFC93C" stroke-width="6"/>
             <g class="speed" stroke="#F4F0FF" stroke-width="3" stroke-linecap="round" opacity=".5">
               <line x1="480" y1="150" x2="0" y2="150"/><line x1="480" y1="205" x2="0" y2="205"/><line x1="480" y1="385" x2="0" y2="385"/>
             </g>
-            <g class="trk t-fire">
-              <path d="M98 432 Q50 418 8 440 Q48 444 98 450Z" fill="#FF5D73"/>
-              <path d="M98 436 Q66 428 36 442 Q66 446 98 448Z" fill="#FFC93C"/>
-            </g>
-            <g class="trk t-sparks" fill="#FFE38A">
-              <circle cx="140" cy="444" r="4"/><circle cx="146" cy="446" r="3"/><circle cx="136" cy="442" r="3"/><circle cx="150" cy="444" r="4"/>
-            </g>
-            <g class="flip">
-            <g class="bob" id="bob">
-              <g transform="translate(150 390) rotate(-22)">
-                <!-- cape -->
-                <path class="trk t-cape" d="M64 -136 Q10 -120 -40 -70 Q0 -90 30 -80 Q20 -60 -10 -30 Q40 -60 56 -96Z" fill="#E0304D"/>
-                <!-- wheels -->
-                <g class="wheel"><circle class="rim" r="55" fill="none" stroke="#F4F0FF" stroke-width="8"/><circle r="47" fill="none" stroke="#120E33" stroke-width="5"/><path d="M-47 0H47M0 -47V47M-33 -33L33 33M-33 33L33 -33" stroke="#A9A2D6" stroke-width="2.5"/><circle r="7" fill="#FFC93C"/></g>
-                <g transform="translate(150 0)"><g class="wheel"><circle class="rim" r="55" fill="none" stroke="#F4F0FF" stroke-width="8"/><circle r="47" fill="none" stroke="#120E33" stroke-width="5"/><path d="M-47 0H47M0 -47V47M-33 -33L33 33M-33 33L33 -33" stroke="#A9A2D6" stroke-width="2.5"/><circle r="7" fill="#FFC93C"/></g></g>
-                <!-- frame -->
-                <g fill="none" stroke="#FF5D73" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M0 0 L65 8 L48 -58 Z"/>
-                  <path d="M65 8 L128 -50 L48 -58"/>
-                  <path d="M128 -50 L150 0"/>
-                </g>
-                <path d="M128 -50 L122 -82 L146 -88" fill="none" stroke="#F4F0FF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M34 -64 H62" stroke="#120E33" stroke-width="10" stroke-linecap="round"/>
-                <circle cx="65" cy="8" r="10" fill="#FFC93C"/>
-                <!-- rider -->
-                <path d="M46 -72 L96 -54 L72 14" fill="none" stroke="#2E2A4A" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M72 14 h20" stroke="#F4F0FF" stroke-width="10" stroke-linecap="round"/>
-                <path d="M46 -72 L70 -142" stroke="#0E0B22" stroke-width="34" stroke-linecap="round"/>
-                <path d="M70 -132 L112 -104 L142 -88" fill="none" stroke="#0E0B22" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
-                <text x="52" y="-104" transform="rotate(-70 52 -104)" font-family="Unbounded, sans-serif" font-size="9" font-weight="700" fill="#F4F0FF">MCKENZIE</text>
-                <g transform="translate(78 -184) rotate(16)">
+            <g class="crashg" id="crashg"><g class="flip" id="flipg">
+              <g id="bike" transform="translate(205 368)">
+                <path class="trk t-cape" d="M70 -134 Q10 -120 -40 -80 Q0 -96 26 -88 Q16 -66 -12 -40 Q40 -66 54 -100Z" fill="#E0304D"/>
+                <g class="wheel"><circle r="34" fill="none" stroke="#120E33" stroke-width="9"/><circle r="39" fill="none" stroke="#120E33" stroke-width="5" stroke-dasharray="4 5"/><circle class="rim" r="26" fill="none" stroke="#F4F0FF" stroke-width="4"/><path d="M-26 0H26M0 -26V26M-18 -18L18 18M-18 18L18 -18" stroke="#A9A2D6" stroke-width="2"/><circle r="7" fill="#FFC93C"/></g>
+                <g transform="translate(150 0)"><g class="wheel"><circle r="34" fill="none" stroke="#120E33" stroke-width="9"/><circle r="39" fill="none" stroke="#120E33" stroke-width="5" stroke-dasharray="4 5"/><circle class="rim" r="26" fill="none" stroke="#F4F0FF" stroke-width="4"/><path d="M-26 0H26M0 -26V26M-18 -18L18 18M-18 18L18 -18" stroke="#A9A2D6" stroke-width="2"/><circle r="7" fill="#FFC93C"/></g></g>
+                <path d="M0 0 L54 -20" stroke="#6B668F" stroke-width="9" stroke-linecap="round"/>
+                <path d="M62 -14 Q24 -20 -6 -42 L-40 -48" fill="none" stroke="#CFC9EE" stroke-width="7" stroke-linecap="round"/>
+                <rect x="-58" y="-56" width="30" height="15" rx="7" fill="#CFC9EE" stroke="#1B1640" stroke-width="2" transform="rotate(10 -43 -48)"/>
+                <path d="M34 -62 L-74 -30 L-76 -22 L-58 -24 L24 -46Z" fill="#FF5D73" stroke="#1B1640" stroke-width="3" stroke-linejoin="round"/>
+                <rect x="44" y="-40" width="40" height="30" rx="8" fill="#3A3560" stroke="#1B1640" stroke-width="3"/>
+                <path d="M54 -20 L68 -62 L120 -72 M120 -72 L86 -22" fill="none" stroke="#FF5D73" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M72 -66 Q92 -92 122 -76 L116 -62 Q96 -66 76 -58Z" fill="#FFC93C" stroke="#1B1640" stroke-width="3"/>
+                <path d="M18 -64 L82 -72" stroke="#120E33" stroke-width="11" stroke-linecap="round"/>
+                <path d="M120 -74 L150 0" stroke="#CFC9EE" stroke-width="8" stroke-linecap="round"/>
+                <path d="M128 -54 L143 -16" stroke="#FFC93C" stroke-width="10" stroke-linecap="round"/>
+                <path d="M122 -46 Q150 -58 180 -40" fill="none" stroke="#FF5D73" stroke-width="7" stroke-linecap="round"/>
+                <g transform="rotate(20 130 -85)"><rect x="118" y="-96" width="24" height="22" rx="4" fill="#F4F0FF" stroke="#1B1640" stroke-width="2"/><text x="130" y="-80" text-anchor="middle" font-size="11" font-weight="900" font-family="Unbounded, sans-serif" fill="#120E33">77</text></g>
+                <path d="M118 -76 L112 -104" stroke="#CFC9EE" stroke-width="6" stroke-linecap="round"/>
+                <path d="M100 -108 L126 -100" stroke="#120E33" stroke-width="7" stroke-linecap="round"/>
+                <path d="M44 -76 L88 -60 L70 -22" fill="none" stroke="#2E2A4A" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M66 -20 h22" stroke="#F4F0FF" stroke-width="9" stroke-linecap="round"/>
+                <path d="M44 -76 L68 -140" stroke="#0E0B22" stroke-width="32" stroke-linecap="round"/>
+                <path d="M68 -130 L96 -112 L112 -104" fill="none" stroke="#0E0B22" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="50" y="-100" transform="rotate(-69 50 -100)" font-family="Unbounded, sans-serif" font-size="9" font-weight="700" fill="#F4F0FF">MCKENZIE</text>
+                <g id="headg" transform="translate(78 -180) rotate(-4)">
                   <image href="head.png" x="-34" y="-45" width="68" height="90"/>
                   <g class="trk t-helmet">
                     <path d="M-38 -4 Q-40 -56 0 -58 Q40 -56 40 -4 Z" fill="#FF5D73" stroke="#1B1640" stroke-width="4"/>
@@ -306,17 +319,26 @@ button{touch-action:manipulation}
                   </g>
                 </g>
               </g>
-            </g>
-            </g>
+            </g></g>
             <g class="trk t-trophy">
               <rect x="270" y="58" width="160" height="40" rx="20" fill="#1B1640" opacity=".85"/>
               <text x="350" y="84" text-anchor="middle" font-family="Unbounded, sans-serif" font-weight="900" font-size="15" fill="url(#gold2)">🏆 РЕКОРД</text>
             </g>
           </svg>
+          <canvas class="layer-s" id="ridefx"></canvas>
         </button>
         <canvas id="fx" aria-hidden="true"></canvas>
       </div>
       <div class="perclick">За клик: <b id="pc">1</b></div>
+      <div class="ride" id="ride">
+        <div class="gauge" aria-hidden="true"><span class="z z1"></span><span class="z z2"></span><span class="z z3"></span><span class="z z4"></span><i id="needle"></i></div>
+        <div class="ridestat"><b id="rstate" class="st-ground">Переднее колесо на земле</b><span id="rrate">+0/с</span></div>
+        <div class="pedals">
+          <button class="pedal brake" id="brake" type="button">◀ Тормоз</button>
+          <button class="pedal gas" id="gas" type="button">Газ ▶</button>
+        </div>
+        <div class="hint">Держи кнопки или стрелки ← → на клавиатуре. Зелёная зона — баланс, жёлтая — хвост скребёт асфальт (×2), красная — падение.</div>
+      </div>
       <div class="evo">
         <div class="evo-head"><span id="evoLabel">Следующий аксессуар</span><b id="next">Тёмные очки</b></div>
         <div class="bar"><i id="evobar"></i></div>
@@ -380,11 +402,11 @@ button{touch-action:manipulation}
   ];
   const TRICK = [
     { id:'helmet', ic:'🪖', t:'Шлем чемпиона',        d:'Защита и стиль',          add:20000,    cost:15000000,  kind:'click', cls:'tr-helmet' },
-    { id:'fire',   ic:'🔥', t:'Огненный след',        d:'Асфальт плавится',        add:150000,   cost:25000000,  kind:'auto',  cls:'tr-fire' },
-    { id:'sparks', ic:'✨', t:'Искры из-под колеса',  d:'Как болгарка',            add:100000,   cost:60000000,  kind:'click', cls:'tr-sparks' },
+    { id:'fire',   ic:'🔥', t:'Огненный след',        d:'Хвост поджигает асфальт',        add:150000,   cost:25000000,  kind:'auto',  cls:'tr-fire' },
+    { id:'sparks', ic:'✨', t:'Искры из-под колеса',  d:'Втрое больше искр',            add:100000,   cost:60000000,  kind:'click', cls:'tr-sparks' },
     { id:'neon',   ic:'💡', t:'Неоновые колёса',      d:'Светятся в темноте',      add:1000000,  cost:150000000, kind:'auto',  cls:'tr-neon' },
     { id:'cape',   ic:'🦸', t:'Плащ каскадёра',       d:'Развевается на ветру',    add:700000,   cost:300000000, kind:'click', cls:'tr-cape' },
-    { id:'flip',   ic:'🔄', t:'Сальто назад',         d:'Прямо на заднем колесе',  add:1500000,  cost:400000000, kind:'click', cls:'tr-flip' },
+    { id:'flip',   ic:'🔄', t:'Сальто назад',         d:'Каждые 12 с баланса',  add:1500000,  cost:400000000, kind:'click', cls:'tr-flip' },
     { id:'record', ic:'🏆', t:'Мировой рекорд',       d:'10 км на заднем колесе',  add:10000000, cost:1500000000,kind:'auto',  cls:'tr-trophy' }
   ];
   const ALL = [...CLICK.map(u => ({ ...u, kind:'click' })), ...AUTO.map(u => ({ ...u, kind:'auto' })), ...TRICK];
@@ -403,7 +425,7 @@ button{touch-action:manipulation}
     { at:1000000,  e:'🔴', t:'Лазерные глаза',    cls:'lv-laser',   rank:'Никита-терминатор' },
     { at:5000000,  e:'💎', t:'Бриллианты',        cls:'lv-gems',    rank:'Бриллиантовый Никита' },
     { at:10000000, e:'🌌', t:'Космический Никита',cls:'lv-space',   rank:'Повелитель вселенной' },
-    { at:UNLOCK_S, e:'🚲', t:'Никита Стантулецкий', cls:'',         rank:'Повелитель вселенной' }
+    { at:UNLOCK_S, e:'🏍️', t:'Никита Стантулецкий', cls:'',         rank:'Повелитель вселенной' }
   ];
 
   const fresh = () => ({ score:0, earned:0, clicks:0, own:{}, lvl:0, char:'n' });
@@ -422,8 +444,7 @@ button{touch-action:manipulation}
   const own = id => S.own[id] || 0;
   const price = u => Math.ceil(u.cost * Math.pow(1.15, own(u.id)));
   const mult = () => (performance.now() < boostUntil ? 7 : 1);
-  const charMult = () => (S.char === 's' ? 3 : 1);
-  const perClick = () => (1 + ALL.filter(u => u.kind === 'click').reduce((s, u) => s + u.add * own(u.id), 0)) * mult() * charMult();
+  const perClick = () => (1 + ALL.filter(u => u.kind === 'click').reduce((s, u) => s + u.add * own(u.id), 0)) * mult();
   const perSec = () => ALL.filter(u => u.kind === 'auto').reduce((s, u) => s + u.add * own(u.id), 0) * mult();
 
   const fmt = n => {
@@ -486,8 +507,8 @@ button{touch-action:manipulation}
     app.classList.toggle('char-s', S.char === 's');
     const u = unlockedS();
     $('ch-s').disabled = !u; $('ch-s-lock').hidden = u;
-    $('av-s').textContent = u ? '🚲' : '🔒';
-    $('tab-trick').disabled = !u; $('tab-trick').textContent = u ? '🚲 Трюки' : '🔒 Трюки';
+    $('av-s').textContent = u ? '🏍️' : '🔒';
+    $('tab-trick').disabled = !u; $('tab-trick').textContent = u ? '🏍️ Трюки' : '🔒 Трюки';
     $('ch-n').setAttribute('aria-pressed', S.char === 'n'); $('ch-s').setAttribute('aria-pressed', S.char === 's');
     if (S.char === 's') {
       const tricks = TRICK.filter(t => own(t.id) > 0).length;
@@ -496,7 +517,7 @@ button{touch-action:manipulation}
     layoutClones();
   };
   addEventListener('resize', layoutClones);
-  const setChar = c => { if (c === 's' && !unlockedS()) return; S.char = c; save(); applyGear(); update(); };
+  const setChar = c => { if (c === 's' && !unlockedS()) return; S.char = c; save(); applyGear(); update(); sizeRide(); };
   $('ch-n').onclick = () => setChar('n');
   $('ch-s').onclick = () => setChar('s');
 
@@ -511,7 +532,7 @@ button{touch-action:manipulation}
     while (l + 1 < LEVELS.length && S.earned >= LEVELS[l + 1].at) l++;
     if (l !== S.lvl) {
       S.lvl = l;
-      if (LEVELS[l].at === UNLOCK_S) toast('🚲', 'Никита Стантулецкий', 'Новый персонаж открыт');
+      if (LEVELS[l].at === UNLOCK_S) toast('🏍️', 'Никита Стантулецкий', 'Новый персонаж открыт');
       else toast(LEVELS[l].e, LEVELS[l].t);
       applyGear(); burst(null, 80, true); save();
     }
@@ -580,14 +601,14 @@ button{touch-action:manipulation}
   };
 
   // click
-  const nk = $('nikita'), bob = $('bob');
+  const nk = $('nikita');
   const doClick = pt => {
+    if (S.char === 's') return;
     const n = perClick(); gain(n); S.clicks++;
     floatText(pt, '+' + fmt(n), mult() > 1 ? '#5BE3B5' : '#FFC93C');
     burst(pt, 8, false);
     nk.classList.remove('hit'); void nk.offsetWidth; nk.classList.add('hit');
     setTimeout(() => nk.classList.remove('hit'), 80);
-    if (S.char === 's') { bob.classList.remove('pop'); void bob.getBoundingClientRect(); bob.classList.add('pop'); clearTimeout(bob._t); bob._t = setTimeout(() => bob.classList.remove('pop'), 360); }
     update();
   };
   nk.addEventListener('pointerdown', e => { e.preventDefault(); doClick({ x: e.clientX, y: e.clientY }); });
@@ -598,6 +619,116 @@ button{touch-action:manipulation}
   document.addEventListener('contextmenu', e => { if (e.target.closest('.nikita, .clone')) e.preventDefault(); });
   document.addEventListener('dblclick', e => e.preventDefault());
   document.addEventListener('selectstart', e => e.preventDefault());
+
+
+  // ===== Stantuletsky: wheelie balance on a pit bike =====
+  const bikeEl = $('bike'), headEl = $('headg'), flipEl = $('flipg'), crashEl = $('crashg');
+  const rc = $('ridefx'), rx = rc.getContext('2d');
+  const ride = { th: 0, w: 0, gas: false, brake: false, t: 0, crashT: 0, wind: 0, nextFlip: 12, txtT: 0, acc: 0, zone: 'ground', rate: 0, scrape: false };
+  let fire = [], sparks = [];
+  const GROUND = 406, HUB_X = 205, HUB_Y = 368, CRASH = 62;
+  function sizeRide() { const w = rc.clientWidth; if (!w) return; rc.width = w * dpr; rc.height = w * dpr; }
+  addEventListener('resize', sizeRide);
+  const hold = (btn, key) => {
+    const on = e => { e.preventDefault(); ride[key] = true; btn.classList.add('held'); try { btn.setPointerCapture(e.pointerId); } catch (_) {} };
+    const off = () => { ride[key] = false; btn.classList.remove('held'); };
+    btn.addEventListener('pointerdown', on);
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => btn.addEventListener(ev, off));
+    btn.addEventListener('contextmenu', e => e.preventDefault());
+  };
+  hold($('gas'), 'gas'); hold($('brake'), 'brake');
+  const KEYS = { ArrowRight: 'gas', ArrowUp: 'gas', KeyD: 'gas', KeyW: 'gas', ArrowLeft: 'brake', ArrowDown: 'brake', KeyA: 'brake', KeyS: 'brake' };
+  addEventListener('keydown', e => { const k = KEYS[e.code]; if (k && S.char === 's') { e.preventDefault(); ride[k] = true; $(k).classList.add('held'); } });
+  addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) { ride[k] = false; $(k).classList.remove('held'); } });
+  addEventListener('blur', () => { ride.gas = ride.brake = false; $('gas').classList.remove('held'); $('brake').classList.remove('held'); });
+
+  const crash = () => {
+    ride.crashT = 1.7; ride.t = 0; ride.gas = ride.brake = false;
+    crashEl.classList.remove('crash'); void crashEl.getBoundingClientRect(); crashEl.classList.add('crash');
+  };
+  const tipPos = th => { const r = th * Math.PI / 180; return { x: HUB_X - 76 * Math.cos(r) - 22 * Math.sin(r), y: HUB_Y + 76 * Math.sin(r) - 22 * Math.cos(r) }; };
+  const toScreen = (x, y) => { const b = rc.getBoundingClientRect(); return { x: b.left + x / 480 * b.width, y: b.top + y / 480 * b.height }; };
+
+  const rideStep = dt => {
+    if (S.char !== 's') return;
+    if (ride.crashT > 0) {
+      ride.crashT -= dt;
+      ride.zone = 'crash'; ride.rate = 0;
+      if (ride.crashT <= 0) { crashEl.classList.remove('crash'); ride.th = 0; ride.w = 0; }
+    } else {
+      const r = ride.th * Math.PI / 180;
+      let a = 140 * Math.sin((ride.th - 40) * Math.PI / 180);
+      if (ride.gas) a += 260;
+      if (ride.brake) a -= 320;
+      ride.wind = Math.max(-70, Math.min(70, ride.wind * .985 + (Math.random() - .5) * 260 * dt));
+      a += ride.wind;
+      const pen = tipPos(ride.th).y - GROUND;
+      ride.scrape = pen > 0;
+      if (ride.scrape) { a -= 12 * pen; if (!ride.gas) a -= 60; ride.w *= 1 - 3 * dt; }
+      ride.w += a * dt; ride.w *= 1 - .6 * dt; ride.th += ride.w * dt;
+      if (ride.th < 0) { ride.th = 0; if (ride.w < 0) ride.w = -ride.w * .2; }
+      if (ride.th >= CRASH) { crash(); ride.zone = 'crash'; }
+      else ride.zone = ride.th < 10 ? 'ground' : ride.scrape ? 'scrape' : 'balance';
+      if (ride.zone === 'ground') { ride.t = 0; ride.nextFlip = 12; }
+      else ride.t += dt;
+      const combo = 1 + Math.min(4, ride.t / 5);
+      ride.combo = combo;
+      ride.rate = ride.zone === 'ground' || ride.zone === 'crash' ? 0 : perClick() * 6 * combo * (ride.zone === 'scrape' ? 2 : 1);
+      if (ride.rate) {
+        gain(ride.rate * dt); ride.acc += ride.rate * dt; ride.txtT += dt;
+        if (ride.txtT > .6) { const p = tipPos(ride.th); floatText(toScreen(p.x + 120, 300), '+' + fmt(ride.acc), ride.zone === 'scrape' ? '#FFC93C' : '#5BE3B5'); ride.txtT = 0; ride.acc = 0; }
+      }
+      if (own('flip') && ride.t >= ride.nextFlip && ride.zone === 'balance') {
+        ride.nextFlip += 12; const bonus = perClick() * 80; gain(bonus);
+        flipEl.classList.remove('doflip'); void flipEl.getBoundingClientRect(); flipEl.classList.add('doflip');
+        floatText(toScreen(240, 200), 'САЛЬТО! +' + fmt(bonus), '#FF5D73');
+      }
+      // scraping: sparks always, fire trail with the trick
+      if (ride.scrape && !reduce) {
+        const p = tipPos(ride.th), n = own('sparks') ? 6 : 2;
+        for (let i = 0; i < n; i++) sparks.push({ x: p.x, y: GROUND - 2, vx: -(120 + Math.random() * 260), vy: -(60 + Math.random() * 200), life: .25 + Math.random() * .3 });
+        if (own('fire')) for (let i = 0; i < 2; i++) fire.push({ x: p.x + (Math.random() - .5) * 8, y: GROUND - 3, s: 10 + Math.random() * 10, life: 1.8, max: 1.8 });
+      }
+    }
+    bikeEl.setAttribute('transform', `translate(${HUB_X} ${HUB_Y}) rotate(${-ride.th.toFixed(2)})`);
+    headEl.setAttribute('transform', `translate(78 -180) rotate(${(ride.th * .55 - 4).toFixed(2)})`);
+    drawRide(dt);
+  };
+
+  const drawRide = dt => {
+    if (!rc.width) sizeRide();
+    const k = rc.width / 480;
+    rx.setTransform(1, 0, 0, 1, 0, 0); rx.clearRect(0, 0, rc.width, rc.height);
+    rx.setTransform(k, 0, 0, k, 0, 0);
+    rx.globalCompositeOperation = 'lighter';
+    const ROAD = 200; // units per second the road scrolls left
+    fire = fire.filter(f => (f.life -= dt) > 0 && f.x > -30);
+    for (const f of fire) {
+      f.x -= ROAD * dt;
+      const q = f.life / f.max, h = f.s * (1.2 + Math.random() * .6) * (.4 + q);
+      const g = rx.createRadialGradient(f.x, f.y, 0, f.x, f.y - h * .4, h);
+      g.addColorStop(0, `rgba(255,240,180,${.9 * q})`); g.addColorStop(.35, `rgba(255,170,60,${.7 * q})`); g.addColorStop(1, 'rgba(255,60,90,0)');
+      rx.fillStyle = g; rx.beginPath(); rx.ellipse(f.x, f.y - h * .5, h * .55, h, 0, 0, Math.PI * 2); rx.fill();
+    }
+    sparks = sparks.filter(p => (p.life -= dt) > 0);
+    rx.lineCap = 'round';
+    for (const p of sparks) {
+      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.y > GROUND) { p.y = GROUND; p.vy *= -.4; }
+      rx.strokeStyle = `rgba(255,230,140,${Math.min(1, p.life * 3)})`; rx.lineWidth = 2.5;
+      rx.beginPath(); rx.moveTo(p.x, p.y); rx.lineTo(p.x - p.vx * .025, p.y - p.vy * .025); rx.stroke();
+    }
+    rx.globalCompositeOperation = 'source-over';
+  };
+
+  const STATES = { ground: ['Переднее колесо на земле', 'st-ground'], balance: ['Баланс!', 'st-balance'], scrape: ['Хвост скребёт асфальт ×2', 'st-scrape'], crash: ['Упал! Поднимаемся…', 'st-crash'] };
+  const rideUI = () => {
+    if (S.char !== 's') return;
+    $('needle').style.left = Math.min(100, ride.th / 70 * 100) + '%';
+    const [txt, cls] = STATES[ride.zone];
+    const st = $('rstate'); if (st.textContent !== txt) { st.textContent = txt; st.className = cls; }
+    $('rrate').textContent = ride.rate ? `+${fmt(ride.rate)}/с · ×${ride.combo.toFixed(1)}` : '+0/с';
+  };
 
   // golden star
   const star = $('star'), bb = $('boostbar');
@@ -636,7 +767,8 @@ button{touch-action:manipulation}
     if (now >= boostUntil && app.classList.contains('boost-on')) app.classList.remove('boost-on');
     const showBB = now < boostUntil; if (bb.hidden === showBB) bb.hidden = !showBB;
     if (showBB) bb.textContent = `⭐ Буст ×7 · ${Math.ceil((boostUntil - now) / 1000)} с`;
-    acc += dt; if (acc > .1) { acc = 0; update(); }
+    rideStep(dt);
+    acc += dt; if (acc > .1) { acc = 0; update(); rideUI(); }
     g.clearRect(0, 0, W, H);
     const t = now / 1000;
     [['255,93,115', .45, .11, 0], ['255,201,60', .35, .09, 2], ['140,123,255', .55, .06, 4]].forEach(([c, r, s, p]) => {
@@ -657,10 +789,10 @@ button{touch-action:manipulation}
   setInterval(save, 5000);
   addEventListener('pagehide', save);
 
-  applyGear(); renderShop(); requestAnimationFrame(loop);
+  applyGear(); renderShop(); sizeRide(); requestAnimationFrame(loop);
 
   // test hook
-  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar };
+  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride };
 })();
 </script>
 </body>
