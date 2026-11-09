@@ -105,6 +105,9 @@ button{touch-action:manipulation}
 .trackwrap svg,.trackwrap canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .hud{position:absolute;top:12px;left:16px;right:16px;display:flex;justify-content:space-between;gap:12px;pointer-events:none;font-family:var(--f-display);font-weight:900;font-size:clamp(14px,2vw,22px);color:var(--paper);text-shadow:0 2px 0 rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
 .hud .t-trophy{color:var(--sun)}
+.helm-shine,.lens-shine{animation:shine 2.4s ease-in-out infinite}
+.lens-shine{animation-delay:.4s}
+@keyframes shine{0%,100%{opacity:.15}50%{opacity:.85}}
 .char-s .grid{grid-template-columns:1fr}
 .char-s .stagewrap{display:none}
 .char-s .trackwrap{display:block}
@@ -282,6 +285,8 @@ button{touch-action:manipulation}
       <div class="trackwrap" id="trackwrap">
         <svg id="tracksvg" viewBox="0 0 960 480" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
           <defs>
+            <linearGradient id="helmShell" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#FF7A8C"/><stop offset=".45" stop-color="#E0304D"/><stop offset="1" stop-color="#6A2BB8"/></linearGradient>
+            <linearGradient id="lens" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#5BE3B5"/><stop offset=".5" stop-color="#8C7BFF"/><stop offset="1" stop-color="#FF5D73"/></linearGradient>
             <linearGradient id="sky2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2C1F78"/><stop offset=".55" stop-color="#B8457A"/><stop offset=".8" stop-color="#FF9A62"/></linearGradient>
           </defs>
           <rect width="960" height="480" fill="url(#sky2)"/>
@@ -320,9 +325,19 @@ button{touch-action:manipulation}
               <g id="headg" transform="translate(78 -180) rotate(-4)">
                 <image href="head.png" x="-34" y="-45" width="68" height="90"/>
                 <g class="trk t-helmet">
-                  <path d="M-38 -4 Q-40 -56 0 -58 Q40 -56 40 -4 Z" fill="#FF5D73" stroke="#1B1640" stroke-width="4"/>
-                  <path d="M-12 -56 L-8 -8 M12 -56 L10 -8" stroke="#F4F0FF" stroke-width="5"/>
-                  <path d="M40 -10 h14" stroke="#1B1640" stroke-width="6" stroke-linecap="round"/>
+                  <!-- motocross helmet: shell, chin guard, peak, goggles on the forehead -->
+                  <path d="M-44 30 Q-52 -26 -24 -52 Q4 -72 34 -54 Q50 -42 46 -14 L32 -12 Q30 -34 2 -38 Q-24 -36 -28 -6 L-30 34 Z" fill="url(#helmShell)" stroke="#120E33" stroke-width="4" stroke-linejoin="round"/>
+                  <path d="M-40 -18 Q-30 -48 0 -56 M-44 6 Q-40 -30 -14 -46" fill="none" stroke="#FFC93C" stroke-width="5" stroke-linecap="round"/>
+                  <path d="M-46 22 Q-40 4 -30 14 Q-36 -6 -24 -2 Q-30 -20 -16 -18" fill="none" stroke="#FFC93C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <text x="-40" y="26" transform="rotate(-80 -40 26)" font-family="Unbounded, sans-serif" font-weight="900" font-size="12" fill="#F4F0FF" stroke="#120E33" stroke-width=".8">77</text>
+                  <path d="M-30 30 Q-6 54 24 48 Q44 40 44 14 L30 10 Q28 30 8 34 Q-12 34 -26 22 Z" fill="url(#helmShell)" stroke="#120E33" stroke-width="4" stroke-linejoin="round"/>
+                  <path d="M20 40 l6 -4 M28 34 l6 -4 M34 26 l6 -3" stroke="#120E33" stroke-width="3.5" stroke-linecap="round"/>
+                  <path d="M6 -50 L74 -44 Q72 -32 64 -28 L22 -32 Z" fill="#FFC93C" stroke="#120E33" stroke-width="4" stroke-linejoin="round"/>
+                  <path d="M30 -42 L66 -39" stroke="#FF5D73" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M-34 -30 Q0 -44 40 -34" fill="none" stroke="#120E33" stroke-width="8"/>
+                  <rect x="-6" y="-46" width="40" height="18" rx="9" fill="url(#lens)" stroke="#120E33" stroke-width="3.5"/>
+                  <path class="lens-shine" d="M2 -42 L10 -42 L4 -32 L-2 -32 Z" fill="#fff" opacity=".7"/>
+                  <path class="helm-shine" d="M-20 -50 Q0 -62 24 -54" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".55"/>
                 </g>
               </g>
             </g></g>
