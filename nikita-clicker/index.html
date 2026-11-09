@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Никита Кликер</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Manrope:wght@500;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: arcade cabinet — counter bar on top, Nikita as the big round button on the left, upgrade shop as a scrolling rack on the right; stacks on phones */
+:root{
+  --ink:#120E33; --ink-2:#1D1850; --ink-3:#2A2468;
+  --paper:#F4F0FF; --muted:#A9A2D6;
+  --sun:#FFC93C; --coral:#FF5D73; --violet:#8C7BFF; --mint:#5BE3B5;
+  --line:rgba(244,240,255,.13);
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--ink);color:var(--paper);font-family:var(--f-body);font-size:15px;line-height:1.5;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ink)}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.app{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+
+/* top */
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.logo{font-family:var(--f-display);font-weight:900;font-size:20px;letter-spacing:-.02em}
+.logo span{color:var(--sun)}
+.score{display:flex;align-items:baseline;gap:20px;flex-wrap:wrap}
+.score .big{font-family:var(--f-display);font-weight:900;font-size:clamp(28px,4.4vw,44px);line-height:1;font-variant-numeric:tabular-nums;color:var(--sun)}
+.score .unit{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-left:6px}
+.score .ps{font-family:var(--f-mono);font-size:14px;color:var(--paper);font-variant-numeric:tabular-nums}
+.score .ps b{color:var(--mint);font-weight:500}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;margin-top:24px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+/* arena */
+.arena{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;padding-block:12px;min-width:0}
+.rank{font-family:var(--f-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:center}
+.rank b{display:block;font-family:var(--f-display);font-weight:900;font-size:clamp(22px,3.2vw,32px);letter-spacing:-.01em;text-transform:none;color:var(--paper);margin-top:4px;text-wrap:balance}
+.stagewrap{position:relative;width:min(420px,82vw);aspect-ratio:1;max-width:100%}
+.aura{position:absolute;inset:-9%;border-radius:50%;opacity:0;transition:opacity 1s;background:conic-gradient(from 0deg,var(--coral),var(--sun),var(--coral),var(--violet),var(--coral));filter:blur(18px);animation:spin 4s linear infinite}
+.lv-aura .aura{opacity:.9}
+.lv-space .aura{background:conic-gradient(from 0deg,var(--violet),var(--mint),var(--sun),var(--coral),var(--violet));inset:-14%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.nikita{position:relative;display:block;width:100%;height:100%;border-radius:50%;border:6px solid var(--sun);padding:0;background:var(--ink-2);cursor:pointer;overflow:hidden;box-shadow:0 14px 0 #B8861A,0 24px 60px rgba(0,0,0,.5);transition:transform .07s ease,box-shadow .07s ease;touch-action:manipulation;user-select:none}
+.nikita:active,.nikita.hit{transform:translateY(8px) scale(.97);box-shadow:0 6px 0 #B8861A,0 14px 40px rgba(0,0,0,.5)}
+.nikita img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
+.nikita svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.gear{opacity:0;transform:translateY(-14px) scale(.85);transform-origin:center;transform-box:fill-box;transition:opacity .6s,transform .7s cubic-bezier(.2,1.6,.4,1)}
+.lv-glasses .g-glasses,.lv-chain .g-chain,.lv-crown .g-crown,.lv-laser .g-laser{opacity:1;transform:none}
+.g-laser line{stroke-dasharray:14 10;animation:dash .4s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-24}}
+.g-crown{animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{translate:0 -6px}}
+.boost-on .nikita{border-color:var(--mint);box-shadow:0 14px 0 #2B9E78,0 0 60px rgba(91,227,181,.6)}
+#fx{position:absolute;inset:-20%;width:140%;height:140%;pointer-events:none;z-index:3}
+.perclick{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.perclick b{color:var(--sun);font-weight:500}
+
+/* evolution track */
+.evo{width:100%;max-width:460px}
+.evo-head{display:flex;justify-content:space-between;gap:12px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.evo-head b{color:var(--paper);font-weight:500;text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:700;font-size:14px}
+.bar{height:12px;background:var(--ink-2);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun),var(--coral));border-radius:inherit;transition:width .3s}
+.steps{display:flex;justify-content:space-between;margin-top:12px;gap:4px}
+.steps span{flex:1;text-align:center;font-size:20px;filter:grayscale(1);opacity:.35;transition:all .4s}
+.steps span.on{filter:none;opacity:1;transform:scale(1.1)}
+
+/* shop */
+.shop{background:var(--ink-2);border-radius:24px;padding:20px;min-width:0}
+.tabs{display:flex;gap:6px;background:var(--ink);padding:5px;border-radius:99px;margin-bottom:16px}
+.tab{flex:1;border:0;border-radius:99px;padding:10px 12px;font-family:var(--f-display);font-weight:700;font-size:13px;color:var(--muted);background:transparent;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--sun);color:var(--ink)}
+.list{display:grid;gap:10px}
+.item{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:var(--ink-3);border:1px solid transparent;border-radius:16px;padding:12px 14px;cursor:pointer;transition:transform .12s,background .2s,border-color .2s,opacity .2s}
+.item:hover:not(:disabled){border-color:var(--sun);transform:translateX(3px)}
+.item:active:not(:disabled){transform:scale(.98)}
+.item:disabled{cursor:not-allowed;opacity:.45}
+.item.locked{opacity:.28}
+.item .ic{width:52px;height:52px;border-radius:14px;background:var(--ink);display:grid;place-items:center;font-size:26px}
+.item .t,.item .d,.item .own,.item .cost{display:block}
+.item .t{font-family:var(--f-display);font-weight:700;font-size:15px;line-height:1.2}
+.item .d{font-size:13px;color:var(--muted);margin-top:2px}
+.item .d b{color:var(--mint);font-weight:700}
+.item .r{text-align:right;font-variant-numeric:tabular-nums}
+.item .cost{font-family:var(--f-mono);font-size:14px;color:var(--sun);white-space:nowrap}
+.item .own{font-family:var(--f-display);font-weight:900;font-size:22px;line-height:1;color:var(--paper);opacity:.85}
+.item.flash{animation:flash .4s}
+@keyframes flash{40%{background:var(--sun);color:var(--ink)}}
+.shop-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;font-size:12px;color:var(--muted)}
+.reset{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:99px;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer}
+.reset.armed{border-color:var(--coral);color:var(--coral)}
+
+/* golden star */
+#star{position:fixed;z-index:30;width:72px;height:72px;border:0;background:none;cursor:pointer;font-size:58px;line-height:72px;padding:0;filter:drop-shadow(0 0 16px var(--sun));animation:float 2s ease-in-out infinite,spin 6s linear infinite}
+@keyframes float{50%{translate:0 -12px}}
+.boostbar{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--mint);color:var(--ink);font-family:var(--f-display);font-weight:900;font-size:14px;padding:10px 18px;border-radius:99px;box-shadow:0 8px 30px rgba(91,227,181,.5);white-space:nowrap}
+
+/* toast */
+.toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top,0px));transform:translate(-50%,-160%);z-index:40;background:var(--paper);color:var(--ink);border-radius:18px;padding:14px 22px;display:flex;gap:14px;align-items:center;box-shadow:0 20px 50px rgba(0,0,0,.45);transition:transform .5s cubic-bezier(.2,1.4,.4,1);max-width:calc(100% - 32px)}
+.toast.show{transform:translate(-50%,0)}
+.toast .e{font-size:32px}
+.toast small{display:block;font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6A5FB0}
+.toast b{font-family:var(--f-display);font-weight:900;font-size:17px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="logo">НИКИТА <span>КЛИКЕР</span></div>
+    <div class="score">
+      <div><span class="big" id="total">0</span><span class="unit">крутости</span></div>
+      <div class="ps"><b id="ps">0</b> в секунду</div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="arena" id="arena" aria-label="Никита">
+      <div class="rank">Звание<b id="rank">Просто Никита</b></div>
+      <div class="stagewrap">
+        <div class="aura"></div>
+        <button class="nikita" id="nikita" type="button" aria-label="Кликнуть по Никите">
+          <img src="photo.jpg" alt="Никита" draggable="false">
+          <svg viewBox="0 0 480 480" aria-hidden="true">
+            <defs>
+              <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#FFE38A"/><stop offset=".5" stop-color="#FFC93C"/><stop offset="1" stop-color="#C98A12"/></linearGradient>
+              <radialGradient id="glow"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#FF5D73"/><stop offset="1" stop-color="#FF5D73" stop-opacity="0"/></radialGradient>
+            </defs>
+            <g class="gear g-chain">
+              <path d="M168 340 Q238 420 312 340" fill="none" stroke="url(#gold)" stroke-width="9" stroke-dasharray="2 13" stroke-linecap="round"/>
+              <path d="M168 340 Q238 420 312 340" fill="none" stroke="#8A5A00" stroke-width="2" opacity=".5"/>
+              <circle cx="240" cy="392" r="26" fill="url(#gold)" stroke="#8A5A00" stroke-width="3"/>
+              <text x="240" y="402" text-anchor="middle" font-family="Unbounded, sans-serif" font-weight="900" font-size="28" fill="#5A3A00">Н</text>
+            </g>
+            <g class="gear g-glasses">
+              <path d="M172 158 h66 v14 q0 30 -33 30 q-33 0 -33 -30z" fill="#0B0920"/>
+              <path d="M240 158 h66 v14 q0 30 -33 30 q-33 0 -33 -30z" fill="#0B0920"/>
+              <rect x="164" y="154" width="150" height="9" rx="4" fill="#0B0920"/>
+              <path d="M182 166 l14 0 M250 166 l14 0" stroke="#8C7BFF" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+            </g>
+            <g class="gear g-laser">
+              <circle cx="205" cy="178" r="20" fill="url(#glow)"/>
+              <circle cx="273" cy="178" r="20" fill="url(#glow)"/>
+              <line x1="205" y1="178" x2="-40" y2="300" stroke="#FF5D73" stroke-width="7" stroke-linecap="round"/>
+              <line x1="273" y1="178" x2="520" y2="300" stroke="#FF5D73" stroke-width="7" stroke-linecap="round"/>
+            </g>
+            <g class="gear g-crown">
+              <path d="M170 82 L182 22 L212 58 L240 12 L268 58 L298 22 L310 82 Z" fill="url(#gold)" stroke="#8A5A00" stroke-width="3" stroke-linejoin="round"/>
+              <rect x="168" y="78" width="144" height="16" rx="5" fill="url(#gold)" stroke="#8A5A00" stroke-width="3"/>
+              <circle cx="240" cy="50" r="8" fill="#FF5D73"/><circle cx="204" cy="66" r="6" fill="#8C7BFF"/><circle cx="276" cy="66" r="6" fill="#5BE3B5"/>
+            </g>
+          </svg>
+        </button>
+        <canvas id="fx" aria-hidden="true"></canvas>
+      </div>
+      <div class="perclick">За клик: <b id="pc">1</b></div>
+      <div class="evo">
+        <div class="evo-head"><span>Следующая прокачка</span><b id="next">Тёмные очки</b></div>
+        <div class="bar"><i id="evobar"></i></div>
+        <div class="steps" id="steps"></div>
+      </div>
+    </section>
+
+    <aside class="shop" aria-label="Магазин улучшений">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-click" aria-selected="true" type="button">Сила клика</button>
+        <button class="tab" role="tab" id="tab-auto" aria-selected="false" type="button">Автокрутость</button>
+      </div>
+      <div class="list" id="list"></div>
+      <div class="shop-foot">
+        <span id="clicks">Кликов: 0</span>
+        <button class="reset" id="reset" type="button">Начать заново</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="e" id="toastE">🕶️</span><div><small>Никита стал круче</small><b id="toastT">Тёмные очки</b></div></div>
+<button id="star" type="button" aria-label="Золотая звезда: бонус ×7" hidden>⭐</button>
+<div class="boostbar" id="boostbar" hidden></div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = id => document.getElementById(id);
+
+  const CLICK = [
+    { id:'hair',   ic:'💇', t:'Причёска стильнее',  d:'Чёлка ложится идеально', add:1,    cost:15 },
+    { id:'hoodie', ic:'🧥', t:'Худи McKenzie',       d:'Чёрное, как надо',       add:5,    cost:180 },
+    { id:'gloves', ic:'🧤', t:'Перчатки силы',       d:'Каждый клик — удар',     add:25,   cost:2500 },
+    { id:'look',   ic:'😎', t:'Взгляд легенды',      d:'Смотрит — и все в шоке', add:140,  cost:35000 },
+    { id:'aura',   ic:'🔥', t:'Аура победителя',     d:'Горит даже в дождь',     add:900,  cost:500000 },
+    { id:'cosmic', ic:'🌌', t:'Космический палец',   d:'Кликает сквозь время',   add:7000, cost:9000000 }
+  ];
+  const AUTO = [
+    { id:'fan',    ic:'🙋', t:'Фанат из класса',     d:'Хлопает без остановки',  add:1,     cost:50 },
+    { id:'tg',     ic:'💬', t:'Группа в Telegram',   d:'Стикеры с Никитой',      add:8,     cost:600 },
+    { id:'tiktok', ic:'📱', t:'Тренд в ТикТоке',     d:'Миллион просмотров',     add:60,    cost:7500 },
+    { id:'club',   ic:'🏟️', t:'Фан-клуб района',     d:'Скандируют имя',         add:400,   cost:90000 },
+    { id:'tv',     ic:'📺', t:'Шоу на ТВ',           d:'Прайм-тайм каждый день', add:2800,  cost:1200000 },
+    { id:'sat',    ic:'🛰️', t:'Спутник «Никита-1»',  d:'Транслирует крутость',   add:20000, cost:18000000 }
+  ];
+  const LEVELS = [
+    { at:0,        e:'🙂', t:'Просто Никита',            cls:'' },
+    { at:100,      e:'🕶️', t:'Тёмные очки',              cls:'lv-glasses', rank:'Никита в очках' },
+    { at:1000,     e:'⛓️', t:'Золотая цепь',             cls:'lv-chain',   rank:'Модный Никита' },
+    { at:10000,    e:'🔥', t:'Огненная аура',            cls:'lv-aura',    rank:'Пылающий Никита' },
+    { at:100000,   e:'👑', t:'Корона',                   cls:'lv-crown',   rank:'Король Никита' },
+    { at:1000000,  e:'⚡', t:'Лазерные глаза',           cls:'lv-laser',   rank:'Никита-терминатор' },
+    { at:10000000, e:'🌌', t:'Космический Никита',       cls:'lv-space',   rank:'Повелитель вселенной' }
+  ];
+
+  const fresh = () => ({ score:0, earned:0, clicks:0, own:{}, lvl:0 });
+  let S = fresh();
+  try { const raw = localStorage.getItem('nikita-clicker'); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.data && hot.data.S) S = Object.assign(fresh(), hot.data.S);
+  if (hot && hot.snapshot) hot.snapshot(() => ({ S }));
+  const save = () => { try { localStorage.setItem('nikita-clicker', JSON.stringify(S)); } catch (e) {} };
+
+  let boostUntil = 0;
+  const own = id => S.own[id] || 0;
+  const price = u => Math.ceil(u.cost * Math.pow(1.15, own(u.id)));
+  const mult = () => (performance.now() < boostUntil ? 7 : 1);
+  const perClick = () => (1 + CLICK.reduce((s, u) => s + u.add * own(u.id), 0)) * mult();
+  const perSec = () => AUTO.reduce((s, u) => s + u.add * own(u.id), 0) * mult();
+
+  const fmt = n => {
+    n = Math.floor(n);
+    const u = [[1e12,' трлн'],[1e9,' млрд'],[1e6,' млн'],[1e4,' тыс.']];
+    for (const [v, s] of u) if (n >= v) return (n / v).toLocaleString('ru-RU', { maximumFractionDigits: n / v < 100 ? 2 : 1 }) + s;
+    return n.toLocaleString('ru-RU');
+  };
+
+  // shop
+  let tab = 'click';
+  const list = $('list');
+  const renderShop = () => {
+    const items = tab === 'click' ? CLICK : AUTO;
+    list.innerHTML = items.map(u => `
+      <button class="item" type="button" data-id="${u.id}">
+        <span class="ic" aria-hidden="true">${u.ic}</span>
+        <span><span class="t">${u.t}</span><span class="d">${u.d} · <b>+${fmt(u.add)}${tab === 'click' ? ' за клик' : '/с'}</b></span></span>
+        <span class="r"><span class="own">${own(u.id)}</span><span class="cost">${fmt(price(u))}</span></span>
+      </button>`).join('');
+    update();
+  };
+  const setTab = t => { tab = t; $('tab-click').setAttribute('aria-selected', t === 'click'); $('tab-auto').setAttribute('aria-selected', t === 'auto'); renderShop(); };
+  $('tab-click').onclick = () => setTab('click');
+  $('tab-auto').onclick = () => setTab('auto');
+  list.addEventListener('click', e => {
+    const b = e.target.closest('.item'); if (!b) return;
+    const u = [...CLICK, ...AUTO].find(x => x.id === b.dataset.id), p = price(u);
+    if (S.score < p) return;
+    S.score -= p; S.own[u.id] = own(u.id) + 1; save(); renderShop();
+    const nb = list.querySelector(`[data-id="${u.id}"]`); if (nb) { nb.classList.add('flash'); nb.focus(); }
+  });
+
+  // level / evolution
+  const app = $('app'), steps = $('steps');
+  steps.innerHTML = LEVELS.slice(1).map(l => `<span title="${l.t}">${l.e}</span>`).join('');
+  const applyLevel = () => {
+    LEVELS.forEach((l, i) => l.cls && app.classList.toggle(l.cls, i <= S.lvl));
+    [...steps.children].forEach((s, i) => s.classList.toggle('on', i + 1 <= S.lvl));
+    $('rank').textContent = S.lvl ? LEVELS[S.lvl].rank : 'Просто Никита';
+    document.body.classList.toggle('space', S.lvl >= 6);
+  };
+  let toastT;
+  const toast = (e, t) => {
+    $('toastE').textContent = e; $('toastT').textContent = t;
+    $('toast').classList.add('show'); clearTimeout(toastT);
+    toastT = setTimeout(() => $('toast').classList.remove('show'), 3200);
+  };
+  const checkLevel = () => {
+    let l = S.lvl;
+    while (l + 1 < LEVELS.length && S.earned >= LEVELS[l + 1].at) l++;
+    if (l !== S.lvl) { S.lvl = l; applyLevel(); toast(LEVELS[l].e, LEVELS[l].t); burst(null, 80, true); save(); }
+  };
+
+  // update UI
+  const update = () => {
+    $('total').textContent = fmt(S.score);
+    $('ps').textContent = fmt(perSec());
+    $('pc').textContent = fmt(perClick());
+    $('clicks').textContent = 'Кликов: ' + S.clicks.toLocaleString('ru-RU');
+    list.querySelectorAll('.item').forEach(b => {
+      const u = [...CLICK, ...AUTO].find(x => x.id === b.dataset.id), p = price(u);
+      b.disabled = S.score < p;
+      b.classList.toggle('locked', own(u.id) === 0 && S.earned < u.cost * 0.4);
+      b.setAttribute('aria-label', `${u.t}, цена ${fmt(p)}, куплено ${own(u.id)}`);
+    });
+    const nx = LEVELS[S.lvl + 1];
+    if (nx) {
+      const pv = LEVELS[S.lvl].at;
+      $('next').textContent = `${nx.e} ${nx.t} — ${fmt(nx.at)}`;
+      $('evobar').style.width = Math.min(100, (S.earned - pv) / (nx.at - pv) * 100) + '%';
+    } else { $('next').textContent = 'Максимальная крутость достигнута'; $('evobar').style.width = '100%'; }
+  };
+  const gain = n => { S.score += n; S.earned += n; checkLevel(); };
+
+  // particles
+  const fx = $('fx'), f = fx.getContext('2d');
+  let dpr = 1, parts = [], running = false;
+  const sizeFx = () => { dpr = Math.min(devicePixelRatio || 1, 2); const r = fx.getBoundingClientRect(); fx.width = r.width * dpr; fx.height = r.height * dpr; };
+  sizeFx(); addEventListener('resize', sizeFx);
+  const COLS = ['#FFC93C', '#FF5D73', '#F4F0FF', '#8C7BFF', '#5BE3B5'];
+  const tick = () => {
+    f.clearRect(0, 0, fx.width, fx.height);
+    parts = parts.filter(p => p.life > 0);
+    for (const p of parts) {
+      p.vy += (p.txt ? .05 : .3) * dpr; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life--;
+      f.save(); f.globalAlpha = Math.min(1, p.life / 25); f.translate(p.x, p.y); f.rotate(p.rot);
+      if (p.txt) { f.font = `900 ${p.size * dpr}px Unbounded, sans-serif`; f.textAlign = 'center'; f.lineWidth = 5 * dpr; f.strokeStyle = '#120E33'; f.strokeText(p.txt, 0, 0); f.fillStyle = p.col; f.fillText(p.txt, 0, 0); }
+      else { f.fillStyle = p.col; f.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); }
+      f.restore();
+    }
+    if (parts.length) requestAnimationFrame(tick); else running = false;
+  };
+  const burst = (pt, n, big) => {
+    if (reduce) return;
+    const r = fx.getBoundingClientRect();
+    const x = pt ? (pt.x - r.left) * dpr : fx.width / 2, y = pt ? (pt.y - r.top) * dpr : fx.height / 2;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = (big ? 6 + Math.random() * 12 : 2 + Math.random() * 6) * dpr;
+      parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3 * dpr, rot: Math.random() * 6, vr: (Math.random() - .5) * .4, s: (5 + Math.random() * 7) * dpr, col: COLS[i % 5], life: 50 + Math.random() * 30 });
+    }
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  };
+  const floatText = (pt, txt, col) => {
+    if (reduce) return;
+    const r = fx.getBoundingClientRect();
+    parts.push({ x: (pt.x - r.left) * dpr, y: (pt.y - r.top) * dpr, vx: (Math.random() - .5) * 1.5 * dpr, vy: -3.2 * dpr, rot: (Math.random() - .5) * .3, vr: 0, txt, col, size: 26, life: 55 });
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  };
+
+  // click Nikita
+  const nk = $('nikita');
+  const doClick = pt => {
+    const n = perClick(); gain(n); S.clicks++;
+    floatText(pt, '+' + fmt(n), mult() > 1 ? '#5BE3B5' : '#FFC93C');
+    burst(pt, 8, false);
+    nk.classList.remove('hit'); void nk.offsetWidth; nk.classList.add('hit');
+    setTimeout(() => nk.classList.remove('hit'), 80);
+    update();
+  };
+  nk.addEventListener('pointerdown', e => { e.preventDefault(); doClick({ x: e.clientX, y: e.clientY }); });
+  nk.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const r = nk.getBoundingClientRect(); doClick({ x: r.left + r.width / 2, y: r.top + r.height / 3 }); }
+  });
+
+  // golden star
+  const star = $('star'), bb = $('boostbar');
+  const spawnStar = () => {
+    if (S.earned < 200) return schedule();
+    star.style.left = (10 + Math.random() * 75) + 'vw'; star.style.top = (20 + Math.random() * 55) + 'vh';
+    star.hidden = false;
+    setTimeout(() => { star.hidden = true; schedule(); }, 9000);
+  };
+  const schedule = () => setTimeout(spawnStar, 40000 + Math.random() * 50000);
+  star.addEventListener('click', e => {
+    star.hidden = true; boostUntil = performance.now() + 15000;
+    app.classList.add('boost-on'); burst({ x: e.clientX, y: e.clientY }, 60, true);
+    toast('⭐', 'Звёздный буст ×7 на 15 секунд');
+  });
+  schedule();
+
+  // reset (two-step, no confirm())
+  const rs = $('reset'); let armT;
+  rs.addEventListener('click', () => {
+    if (!rs.classList.contains('armed')) { rs.classList.add('armed'); rs.textContent = 'Точно сбросить?'; armT = setTimeout(() => { rs.classList.remove('armed'); rs.textContent = 'Начать заново'; }, 3000); return; }
+    clearTimeout(armT); S = fresh(); save(); applyLevel(); renderShop();
+    rs.classList.remove('armed'); rs.textContent = 'Начать заново';
+  });
+
+  // game loop
+  let last = performance.now(), acc = 0;
+  const bg = $('bg'), g = bg.getContext('2d'); let W, H;
+  const sizeBg = () => { W = bg.width = innerWidth * dpr; H = bg.height = innerHeight * dpr; };
+  sizeBg(); addEventListener('resize', sizeBg);
+  const stars = Array.from({ length: 120 }, () => ({ x: Math.random(), y: Math.random(), z: Math.random() }));
+  const loop = now => {
+    const dt = Math.min(1, (now - last) / 1000); last = now;
+    const ps = perSec(); if (ps) gain(ps * dt);
+    if (now >= boostUntil && app.classList.contains('boost-on')) app.classList.remove('boost-on');
+    bb.hidden = now >= boostUntil; if (!bb.hidden) bb.textContent = `⭐ Буст ×7 · ${Math.ceil((boostUntil - now) / 1000)} с`;
+    acc += dt; if (acc > .1) { acc = 0; update(); }
+    // background
+    g.clearRect(0, 0, W, H);
+    const t = now / 1000;
+    [['255,93,115', .45, .11, 0], ['255,201,60', .35, .09, 2], ['140,123,255', .55, .06, 4]].forEach(([c, r, s, p]) => {
+      const x = W * (.5 + .4 * Math.sin(t * s + p)), y = H * (.5 + .4 * Math.cos(t * s * 1.2 + p)), R = Math.max(W, H) * r;
+      const gr = g.createRadialGradient(x, y, 0, x, y, R); gr.addColorStop(0, `rgba(${c},${.1 + S.lvl * .015})`); gr.addColorStop(1, `rgba(${c},0)`);
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    });
+    if (S.lvl >= 6) {
+      g.fillStyle = '#F4F0FF';
+      for (const st of stars) {
+        st.y += (reduce ? 0 : .0004 + st.z * .0012); if (st.y > 1) st.y = 0;
+        g.globalAlpha = .3 + st.z * .7; g.fillRect(st.x * W, st.y * H, (1 + st.z * 2) * dpr, (1 + st.z * 2) * dpr);
+      }
+      g.globalAlpha = 1;
+    }
+    requestAnimationFrame(loop);
+  };
+  setInterval(save, 5000);
+  addEventListener('pagehide', save);
+
+  applyLevel(); renderShop(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
