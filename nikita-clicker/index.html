@@ -108,10 +108,24 @@ button{touch-action:manipulation}
 .helm-shine,.lens-shine{animation:shine 2.4s ease-in-out infinite}
 .lens-shine{animation-delay:.4s}
 @keyframes shine{0%,100%{opacity:.15}50%{opacity:.85}}
-.char-s .grid{grid-template-columns:1fr}
-.char-s .stagewrap{display:none}
-.char-s .trackwrap{display:block}
-.char-s .perclick{display:none}
+.char-s .grid,.char-r .grid,.char-d .grid{grid-template-columns:1fr}
+.char-s .stagewrap,.char-r .stagewrap,.char-d .stagewrap{display:none}
+.char-s #trackwrap,.char-r #roofwrap,.char-d #digwrap{display:block}
+.char-s .perclick,.char-r .perclick,.char-d .perclick{display:none}
+#roofwrap{border-color:var(--violet);box-shadow:0 10px 0 #5A4BC4,0 24px 60px rgba(0,0,0,.45);background:#0B0828}
+#digwrap{border-color:#E8812A;box-shadow:0 10px 0 #9A5414,0 24px 60px rgba(0,0,0,.45);background:#05040C}
+.ctl{display:none;width:100%;max-width:760px;gap:12px}
+.char-r #roofctl,.char-d #digctl{display:grid}
+.pads3{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:10px}
+.pads2{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.pedal.jump{background:var(--sun);color:var(--ink);box-shadow:0 8px 0 #B8861A}
+.pedal.hand{background:var(--violet);color:var(--paper);box-shadow:0 8px 0 #5A4BC4}
+.pedal.hand.next{outline:4px solid var(--sun);outline-offset:2px}
+.pill{border:2px solid var(--sun);background:var(--sun);color:var(--ink);border-radius:99px;padding:10px 20px;font-family:var(--f-display);font-weight:900;font-size:14px;cursor:pointer;min-width:10em}
+.pill[aria-pressed="false"]{background:transparent;color:var(--sun)}
+.meters{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.meters .bar i{transition:none}
+@media (max-width:480px){.pads3 .pedal{font-size:14px;padding:20px 4px}}
 .ride{display:none;width:100%;max-width:760px;gap:12px}
 .char-s .ride{display:grid}
 .gauge{position:relative;height:18px;border-radius:99px;overflow:hidden;display:flex;background:var(--ink-2)}
@@ -151,7 +165,7 @@ button{touch-action:manipulation}
 .evo-head b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--paper);text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:700;font-size:14px}
 .bar{height:12px;background:var(--ink-2);border-radius:99px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun),var(--coral));border-radius:inherit;transition:width .3s}
-.steps{display:grid;grid-template-columns:repeat(12,1fr);margin-top:12px;gap:2px}
+.steps{display:grid;grid-template-columns:repeat(14,1fr);margin-top:12px;gap:2px}
 .steps span{text-align:center;font-size:18px;filter:grayscale(1);opacity:.3;transition:opacity .4s,filter .4s}
 .steps span.on{filter:none;opacity:1}
 
@@ -215,6 +229,8 @@ button{touch-action:manipulation}
       <div class="chars">
         <button class="char" id="ch-n" type="button" aria-pressed="true"><span class="av" style="background-image:url(photo.jpg)"></span>Никита</button>
         <button class="char" id="ch-s" type="button" aria-pressed="false" disabled><span class="av" id="av-s">🔒</span>Никита Стантулецкий <small id="ch-s-lock">15 млн</small></button>
+        <button class="char" id="ch-r" type="button" aria-pressed="false" disabled><span class="av" id="av-r">🔒</span>Никита Руфер <small id="ch-r-lock">100 млн</small></button>
+        <button class="char" id="ch-d" type="button" aria-pressed="false" disabled><span class="av" id="av-d">🔒</span>Никита Диггер <small id="ch-d-lock">1 млрд</small></button>
       </div>
       <div class="rank">Звание<b id="rank">Просто Никита</b></div>
       <div class="stagewrap" id="stagewrap">
@@ -348,6 +364,8 @@ button{touch-action:manipulation}
         <canvas id="ridefx" aria-hidden="true"></canvas>
         <div class="hud"><span id="speedo">0 км/ч</span><span class="trk t-trophy">🏆 Мировой рекорд</span></div>
       </div>
+      <div class="trackwrap" id="roofwrap"><canvas id="roofc" aria-hidden="true"></canvas><div class="hud"><span id="rfhud">0 м</span><span>🏙️ Ночные крыши</span></div></div>
+      <div class="trackwrap" id="digwrap"><canvas id="digc" aria-hidden="true"></canvas><div class="hud"><span id="dghud">0 м</span><span id="dghud2"></span></div></div>
       <div class="perclick">За клик: <b id="pc">1</b></div>
       <div class="ride" id="ride">
         <div class="gauge" aria-hidden="true"><span class="z z1"></span><span class="z z2"></span><span class="z z3"></span><span class="z z4"></span><i id="needle"></i></div>
@@ -358,6 +376,28 @@ button{touch-action:manipulation}
           <button class="pedal gas" id="gas" type="button">Газ ▶</button>
         </div>
         <div class="hint">Держи кнопки или стрелки ← → на клавиатуре. Пробел включает и выключает режим станта. Без станта газ просто разгоняет — можно набрать скорость и включить стант на ходу. В станте газ задирает переднее колесо, тормоз опускает. Зелёная зона — баланс, жёлтая — хвост скребёт асфальт (×2), красная — перевернёшься. Чем быстрее едешь, тем больше крутости.</div>
+      </div>
+      <div class="ctl" id="roofctl">
+        <div class="ridestat"><b id="rfstate" class="st-balance">Бежит по крышам</b><span id="rfrate">×1.0 · 📸 0</span></div>
+        <div class="meters"><span>Хват</span><div class="bar"><i id="gripbar"></i></div><span>Подтянуться</span><div class="bar"><i id="pullbar"></i></div></div>
+        <div class="pads3">
+          <button class="pedal hand" id="hl" type="button">✋ Левая</button>
+          <button class="pedal jump" id="hj" type="button">⤴ Прыжок</button>
+          <button class="pedal hand" id="hr" type="button">Правая ✋</button>
+        </div>
+        <div class="pads2"><button class="pill" id="photo" type="button">📸 Фото</button></div>
+        <div class="hint">Держи «Прыжок» — чем дольше, тем дальше. Не допрыгнул до крыши — хватайся за край: жми Левая и Правая по очереди, пока не залезешь. На высотках с антенной делай фото. Клавиши: пробел — прыжок, ← → — руки, F — фото. Это мультяшная игра: в жизни на крыши без разрешения не лазят.</div>
+      </div>
+      <div class="ctl" id="digctl">
+        <div class="ridestat"><b id="dgstate" class="st-balance">Исследует бункер</b><span id="dgrate">Коллекция: 0/10</span></div>
+        <div class="meters"><span>Батарея</span><div class="bar"><i id="batbar"></i></div></div>
+        <div class="pads3">
+          <button class="pedal brake" id="dl" type="button">◀</button>
+          <button class="pedal jump" id="dj" type="button">⤴ Прыжок</button>
+          <button class="pedal gas" id="dr" type="button">▶</button>
+        </div>
+        <div class="pads2"><button class="pill" id="dlamp" type="button" aria-pressed="true">🔦 Фонарь: ВКЛ</button><button class="pill" id="dtake" type="button">✋ Взять</button></div>
+        <div class="hint">Иди с фонарём и ищи находки — они блестят в луче. Ямы видно только при свете, перепрыгивай их. Фонарь садится; выключи его, чтобы подзарядить. Клавиши: ← → — идти, пробел — прыжок, F — фонарь, E — взять. Это мультяшная игра: в жизни в заброшенные тоннели не ходят.</div>
       </div>
       <div class="evo">
         <div class="evo-head"><span id="evoLabel">Следующий аксессуар</span><b id="next">Тёмные очки</b></div>
@@ -429,7 +469,30 @@ button{touch-action:manipulation}
     { id:'flip',   ic:'🔄', t:'Сальто назад',         d:'Каждые 12 с баланса',  add:1500000,  cost:400000000, kind:'click', cls:'tr-flip' },
     { id:'record', ic:'🏆', t:'Мировой рекорд',       d:'10 км на заднем колесе',  add:10000000, cost:1500000000,kind:'auto',  cls:'tr-trophy' }
   ];
-  const ALL = [...CLICK.map(u => ({ ...u, kind:'click' })), ...AUTO.map(u => ({ ...u, kind:'auto' })), ...TRICK];
+  const ROOF = [
+    { id:'grip',    ic:'👟', t:'Цепкие кроссовки',    d:'Прыжок дальше',              add:200000,    cost:100000000,   kind:'click' },
+    { id:'rgloves', ic:'🧤', t:'Перчатки руфера',     d:'Легче подтянуться',          add:1500000,   cost:160000000,   kind:'auto' },
+    { id:'cam',     ic:'📷', t:'Зеркалка',            d:'Фото дают ×3',               add:600000,    cost:300000000,   kind:'click' },
+    { id:'pack',    ic:'🎒', t:'Рюкзак с термосом',   d:'Хват держится дольше',       add:4000000,   cost:600000000,   kind:'auto' },
+    { id:'scarf',   ic:'🧣', t:'Шарф на ветру',       d:'Комбо растёт быстрее',       add:2000000,   cost:1200000000,  kind:'click' },
+    { id:'drone',   ic:'🚁', t:'Дрон-оператор',       d:'Сам снимает высотки',        add:25000000,  cost:2500000000,  kind:'auto' },
+    { id:'gopro',   ic:'🎥', t:'Экшн-камера',         d:'Вся крутость на крышах ×1,5',add:10000000,  cost:5000000000,  kind:'click' }
+  ];
+  const DIG = [
+    { id:'lamp',     ic:'🔦', t:'Мощный фонарь',      d:'Луч светит дальше',          add:2000000,   cost:1000000000,  kind:'click' },
+    { id:'battery',  ic:'🔋', t:'Аккумулятор',        d:'Фонарь садится медленнее',   add:15000000,  cost:1600000000,  kind:'auto' },
+    { id:'helmet2',  ic:'⛑️', t:'Каска с налобником', d:'Светло вокруг',              add:6000000,   cost:3000000000,  kind:'click' },
+    { id:'boots',    ic:'🥾', t:'Резиновые сапоги',   d:'Лужи не тормозят',           add:40000000,  cost:6000000000,  kind:'auto' },
+    { id:'detector', ic:'📡', t:'Металлоискатель',    d:'Пищит рядом с находками',    add:20000000,  cost:12000000000, kind:'click' },
+    { id:'map',      ic:'🗺️', t:'Старая схема',       d:'Показывает ямы в темноте',   add:200000000, cost:25000000000, kind:'auto' },
+    { id:'dog',      ic:'🐕', t:'Пёс-напарник',       d:'Сам приносит находки',       add:500000000, cost:60000000000, kind:'auto' }
+  ];
+  const ALL = [...CLICK.map(u => ({ ...u, kind:'click' })), ...AUTO.map(u => ({ ...u, kind:'auto' })), ...TRICK, ...ROOF, ...DIG];
+  const SPECIAL = {
+    s: { list: TRICK, at: UNLOCK_S,   e:'🏍️', tab:'🏍️ Трюки',   ranks:['Никита Стантулецкий', 'Король заднего колеса', 'Легенда двух колёс'] },
+    r: { list: ROOF,  at: 100000000,  e:'🏙️', tab:'🏙️ Руфинг',  ranks:['Никита Руфер', 'Король крыш', 'Хозяин ночного города'] },
+    d: { list: DIG,   at: 1000000000, e:'🔦', tab:'🔦 Диггинг', ranks:['Никита Диггер', 'Следопыт подземелий', 'Хранитель бункера'] }
+  };
   const byId = Object.fromEntries(ALL.map(u => [u.id, u]));
 
   const LEVELS = [
@@ -445,10 +508,12 @@ button{touch-action:manipulation}
     { at:1000000,  e:'🔴', t:'Лазерные глаза',    cls:'lv-laser',   rank:'Никита-терминатор' },
     { at:5000000,  e:'💎', t:'Бриллианты',        cls:'lv-gems',    rank:'Бриллиантовый Никита' },
     { at:10000000, e:'🌌', t:'Космический Никита',cls:'lv-space',   rank:'Повелитель вселенной' },
-    { at:UNLOCK_S, e:'🏍️', t:'Никита Стантулецкий', cls:'',         rank:'Повелитель вселенной' }
+    { at:UNLOCK_S, e:'🏍️', t:'Никита Стантулецкий', cls:'',         rank:'Повелитель вселенной', unlock:'s' },
+    { at:100000000,  e:'🏙️', t:'Никита Руфер',  cls:'', rank:'Повелитель вселенной', unlock:'r' },
+    { at:1000000000, e:'🔦', t:'Никита Диггер', cls:'', rank:'Повелитель вселенной', unlock:'d' }
   ];
 
-  const fresh = () => ({ score:0, earned:0, clicks:0, own:{}, lvl:0, char:'n' });
+  const fresh = () => ({ score:0, earned:0, clicks:0, own:{}, lvl:0, char:'n', photos:0, found:{} });
   let S = fresh();
   try { const raw = localStorage.getItem('nikita-clicker'); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
   const hot = window.claude && window.claude.hot;
@@ -457,8 +522,8 @@ button{touch-action:manipulation}
   const save = () => { try { localStorage.setItem('nikita-clicker', JSON.stringify(S)); } catch (e) {} };
   // recompute level silently (level table changed between versions)
   S.lvl = 0; while (S.lvl + 1 < LEVELS.length && S.earned >= LEVELS[S.lvl + 1].at) S.lvl++;
-  const unlockedS = () => S.earned >= UNLOCK_S;
-  if (!unlockedS()) S.char = 'n';
+  const unlocked = c => c === 'n' || (SPECIAL[c] && S.earned >= SPECIAL[c].at);
+  if (!unlocked(S.char)) S.char = 'n';
 
   let boostUntil = 0;
   const own = id => S.own[id] || 0;
@@ -477,7 +542,7 @@ button{touch-action:manipulation}
   // shop
   let tab = 'click';
   const list = $('list');
-  const listFor = t => (t === 'click' ? CLICK : t === 'auto' ? AUTO : TRICK);
+  const listFor = t => (t === 'click' ? CLICK : t === 'auto' ? AUTO : (SPECIAL[S.char] ? SPECIAL[S.char].list : []));
   const renderShop = () => {
     list.innerHTML = listFor(tab).map(u0 => { const u = byId[u0.id]; return `
       <button class="item" type="button" data-id="${u.id}">
@@ -524,22 +589,26 @@ button{touch-action:manipulation}
     LEVELS.forEach((l, i) => l.cls && app.classList.toggle(l.cls, i <= S.lvl));
     [...steps.children].forEach((s, i) => s.classList.toggle('on', i + 1 <= S.lvl));
     TRICK.forEach(t => app.classList.toggle(t.cls, own(t.id) > 0));
-    app.classList.toggle('char-s', S.char === 's');
-    const u = unlockedS();
-    $('ch-s').disabled = !u; $('ch-s-lock').hidden = u;
-    $('av-s').textContent = u ? '🏍️' : '🔒';
-    $('tab-trick').disabled = !u; $('tab-trick').textContent = u ? '🏍️ Трюки' : '🔒 Трюки';
-    $('ch-n').setAttribute('aria-pressed', S.char === 'n'); $('ch-s').setAttribute('aria-pressed', S.char === 's');
-    if (S.char === 's') {
-      const tricks = TRICK.filter(t => own(t.id) > 0).length;
-      $('rank').textContent = tricks >= TRICK.length ? 'Легенда двух колёс' : tricks >= 3 ? 'Король заднего колеса' : 'Никита Стантулецкий';
+    for (const c of ['s', 'r', 'd']) {
+      const u = unlocked(c);
+      app.classList.toggle('char-' + c, S.char === c);
+      $('ch-' + c).disabled = !u; $('ch-' + c + '-lock').hidden = u;
+      $('av-' + c).textContent = u ? SPECIAL[c].e : '🔒';
+      $('ch-' + c).setAttribute('aria-pressed', S.char === c);
+    }
+    $('ch-n').setAttribute('aria-pressed', S.char === 'n');
+    const sp = SPECIAL[S.char];
+    $('tab-trick').disabled = !sp; $('tab-trick').textContent = sp ? sp.tab : '🔒 Персонаж';
+    if (!sp && tab === 'trick') setTab('click');
+    if (sp) {
+      const cnt = sp.list.filter(t => own(t.id) > 0).length;
+      $('rank').textContent = sp.ranks[cnt >= sp.list.length ? 2 : cnt >= 3 ? 1 : 0];
     } else $('rank').textContent = LEVELS[S.lvl].rank;
     layoutClones();
   };
   addEventListener('resize', layoutClones);
-  const setChar = c => { if (c === 's' && !unlockedS()) return; S.char = c; save(); applyGear(); update(); sizeRide(); };
-  $('ch-n').onclick = () => setChar('n');
-  $('ch-s').onclick = () => setChar('s');
+  const setChar = c => { if (!unlocked(c)) return; S.char = c; save(); applyGear(); if (tab === 'trick') renderShop(); update(); sizeRide(); sizeRoof(); sizeDig(); };
+  ['n', 's', 'r', 'd'].forEach(c => { $('ch-' + c).onclick = () => setChar(c); });
 
   let toastT;
   const toast = (e, t, s) => {
@@ -552,7 +621,7 @@ button{touch-action:manipulation}
     while (l + 1 < LEVELS.length && S.earned >= LEVELS[l + 1].at) l++;
     if (l !== S.lvl) {
       S.lvl = l;
-      if (LEVELS[l].at === UNLOCK_S) toast('🏍️', 'Никита Стантулецкий', 'Новый персонаж открыт');
+      if (LEVELS[l].unlock) toast(LEVELS[l].e, LEVELS[l].t, 'Новый персонаж открыт');
       else toast(LEVELS[l].e, LEVELS[l].t);
       applyGear(); burst(null, 80, true); save();
     }
@@ -572,14 +641,14 @@ button{touch-action:manipulation}
     const nx = LEVELS[S.lvl + 1];
     if (nx) {
       const pv = LEVELS[S.lvl].at;
-      $('evoLabel').textContent = nx.at === UNLOCK_S ? 'Новый персонаж' : 'Следующий аксессуар';
+      $('evoLabel').textContent = nx.unlock ? 'Новый персонаж' : 'Следующий аксессуар';
       $('next').textContent = `${nx.e} ${nx.t} — ${fmt(nx.at)}`;
       $('evobar').style.width = Math.min(100, (S.earned - pv) / (nx.at - pv) * 100) + '%';
     } else {
-      const done = TRICK.filter(t => own(t.id) > 0).length;
-      $('evoLabel').textContent = 'Трюки Стантулецкого';
-      $('next').textContent = `${done} из ${TRICK.length} открыто`;
-      $('evobar').style.width = (done / TRICK.length * 100) + '%';
+      const sl = [...TRICK, ...ROOF, ...DIG], done = sl.filter(t => own(t.id) > 0).length;
+      $('evoLabel').textContent = 'Все персонажи открыты';
+      $('next').textContent = `Улучшения персонажей: ${done} из ${sl.length}`;
+      $('evobar').style.width = (done / sl.length * 100) + '%';
     }
   };
   const gain = n => { S.score += n; S.earned += n; checkLevel(); };
@@ -623,7 +692,7 @@ button{touch-action:manipulation}
   // click
   const nk = $('nikita');
   const doClick = pt => {
-    if (S.char === 's') return;
+    if (S.char !== 'n') return;
     const n = perClick(); gain(n); S.clicks++;
     floatText(pt, '+' + fmt(n), mult() > 1 ? '#5BE3B5' : '#FFC93C');
     burst(pt, 8, false);
@@ -873,6 +942,388 @@ button{touch-action:manipulation}
     if (sb.textContent !== lbl) { sb.textContent = lbl; sb.setAttribute('aria-pressed', on); }
   };
 
+  // ===== shared helpers for the drawn characters =====
+  const fitScene = (wrap, cv, v) => {
+    const W = wrap.clientWidth, H = wrap.clientHeight; if (!W) return false;
+    cv.width = W * dpr; cv.height = H * dpr;
+    v.k = Math.max(W / 960, H / 480); v.x = (W - 960 * v.k) / 2; v.y = H - 480 * v.k; return true;
+  };
+  const rr = (g, x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+  const sparkle = (g, x, y, r) => { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, q = i % 2 ? r * .35 : r; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } g.closePath(); g.fill(); };
+  const drawTexts = (g, arr, dt) => {
+    g.textAlign = 'center'; g.font = '900 26px Unbounded, sans-serif'; g.lineWidth = 6; g.strokeStyle = '#120E33';
+    for (let i = arr.length - 1; i >= 0; i--) { const t = arr[i]; t.life -= dt; if (t.life <= 0) { arr.splice(i, 1); continue; } t.y -= 55 * dt; g.globalAlpha = Math.min(1, t.life * 2); g.strokeText(t.txt, t.x, t.y); g.fillStyle = t.col; g.fillText(t.txt, t.x, t.y); }
+    g.globalAlpha = 1;
+  };
+  const pressHold = (el, down, up) => {
+    el.addEventListener('pointerdown', e => { e.preventDefault(); el.classList.add('held'); try { el.setPointerCapture(e.pointerId); } catch (_) {} down(); });
+    const off = () => { if (el.classList.contains('held')) { el.classList.remove('held'); if (up) up(); } };
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, off));
+    el.addEventListener('contextmenu', e => e.preventDefault());
+  };
+  // cartoon figure, feet at (x, y), facing right unless dir = -1
+  const drawGuy = (g, o) => {
+    const { x, y, ph = 0, pose = 'run', dir = 1, fit = {}, t = 0 } = o;
+    g.save(); g.translate(x, y); g.scale(dir, 1); g.lineCap = 'round'; g.lineJoin = 'round';
+    const s = Math.sin(ph);
+    let f1, f2, h1, h2;
+    if (pose === 'run') { f1 = [18 * s, -5 * Math.max(0, Math.cos(ph))]; f2 = [-18 * s, -5 * Math.max(0, -Math.cos(ph))]; h1 = [6 - 16 * s, -60]; h2 = [6 + 16 * s, -60]; }
+    else if (pose === 'stand') { f1 = [8, 0]; f2 = [-6, 0]; h1 = [14, -58]; h2 = [-4, -58]; }
+    else if (pose === 'air') { f1 = [16, -14]; f2 = [-14, -4]; h1 = [22, -86]; h2 = [-14, -80]; }
+    else if (pose === 'hang') { f1 = [4 + 6 * s, -2]; f2 = [-6 - 6 * s, 0]; h1 = [10, -118]; h2 = [0, -120]; }
+    else { f1 = [18 * s, -10]; f2 = [-18 * s, -2]; h1 = [-14 + 8 * s, -124]; h2 = [24 - 8 * s, -120]; }
+    const hip = [0, -48], sh = [4, -88];
+    const k1 = [(hip[0] + f1[0]) / 2 + 7, (hip[1] + f1[1]) / 2], k2 = [(hip[0] + f2[0]) / 2 + 7, (hip[1] + f2[1]) / 2];
+    const line = (pts, w, c) => { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.stroke(); };
+    if (fit.scarf) { g.strokeStyle = '#FFC93C'; g.lineWidth = 6; g.beginPath(); g.moveTo(4, -92); for (let i = 1; i <= 5; i++) g.lineTo(4 - i * 9, -92 + Math.sin(t * 12 + i) * 4 + i * 2); g.stroke(); }
+    if (fit.pack) { g.fillStyle = fit.packC || '#5BE3B5'; rr(g, -20, -90, 16, 38, 6); g.fill(); }
+    line([hip, k2, f2], 9, fit.pants); line([hip, k1, f1], 9, fit.pants);
+    g.fillStyle = fit.boots ? '#FFC93C' : '#F4F0FF';
+    for (const f of [f1, f2]) g.fillRect(f[0] - 4, f[1] - (fit.boots ? 9 : 5), 13, fit.boots ? 10 : 6);
+    line([sh, h2], 8, fit.hood);
+    line([hip, sh], 22, fit.hood);
+    if (fit.overalls) line([[0, -50], [3, -78]], 14, fit.overalls);
+    if (fit.cam) { g.fillStyle = '#120E33'; rr(g, 6, -82, 15, 11, 2); g.fill(); g.fillStyle = '#8C7BFF'; g.beginPath(); g.arc(13, -76, 3, 0, 7); g.fill(); }
+    line([sh, h1], 8, fit.hood);
+    g.fillStyle = fit.gloves || '#F2C9A5'; for (const h of [h1, h2]) { g.beginPath(); g.arc(h[0], h[1], 5.5, 0, 7); g.fill(); }
+    g.fillStyle = '#F2C9A5'; g.beginPath(); g.arc(7, -104, 14, 0, 7); g.fill();
+    g.fillStyle = '#3A2A20'; g.beginPath(); g.arc(5, -107, 14.5, Math.PI * 1.02, Math.PI * 1.98); g.fill();
+    g.fillStyle = '#120E33'; g.beginPath(); g.arc(15, -103, 2, 0, 7); g.fill();
+    if (fit.hat === 'beanie') { g.fillStyle = '#FF5D73'; g.beginPath(); g.arc(6, -110, 14, Math.PI, 0); g.fill(); g.fillRect(-9, -112, 30, 5); g.beginPath(); g.arc(6, -126, 4, 0, 7); g.fill(); }
+    if (fit.hat === 'helmet') { g.fillStyle = '#FFC93C'; g.beginPath(); g.arc(6, -108, 16, Math.PI, 0); g.fill(); g.fillRect(-12, -110, 36, 5); g.fillStyle = '#F4F0FF'; g.fillRect(17, -120, 8, 8); }
+    if (fit.hat === 'bandana') { g.fillStyle = '#8C7BFF'; g.beginPath(); g.arc(6, -108, 14, Math.PI, 0); g.fill(); g.fillRect(-12, -110, 8, 12); }
+    g.restore();
+  };
+
+  // ===== Никита Руфер: прыжки по крышам ночного города =====
+  const roofwrap = $('roofwrap'), roc = $('roofc'), rg = roc.getContext('2d');
+  const RV = { k: 1, x: 0, y: 0 };
+  function sizeRoof() { fitScene(roofwrap, roc, RV); }
+  addEventListener('resize', sizeRoof);
+  const RUN = 240, GRAV = 1500, PX = 300;
+  const roof = { x: 0, y: 0, vx: RUN, vy: 0, state: 'run', ph: 0, charge: 0, jumpHeld: false, cam: 0, blds: [], combo: 1, hang: null, fallT: 0, last: null, flash: 0, txt: [], dist: 0, t: 0 };
+  const farB = Array.from({ length: 30 }, () => ({ w: 40 + Math.random() * 70, h: 60 + Math.random() * 150 }));
+  const farW = farB.reduce((s, b) => s + b.w, 0);
+  const starsR = Array.from({ length: 70 }, () => ({ x: Math.random() * 1700 - 380, y: Math.random() * 230, r: Math.random() * 1.6 + .5 }));
+  const newB = (x, prevTop) => { const top = Math.max(205, Math.min(380, prevTop + (Math.random() * 210 - 100))); return { x, w: 200 + Math.random() * 240, top, tall: top < 245, shot: false, deco: Math.floor(Math.random() * 3), seed: Math.random() * 1000 }; };
+  const rGap = () => 80 + Math.random() * 130;
+  const resetRoof = () => {
+    roof.blds = []; let x = -300, top = 330;
+    for (let i = 0; i < 7; i++) { const b = i < 2 ? { x, w: 420, top: 330, tall: false, shot: true, deco: 1, seed: i * 7 } : newB(x, top); roof.blds.push(b); top = b.top; x += b.w + rGap(); }
+    const b = roof.blds[1]; roof.last = b; roof.x = b.x + 60; roof.y = b.top; roof.vy = 0; roof.vx = RUN; roof.state = 'run'; roof.cam = roof.x - PX; roof.hang = null;
+  };
+  resetRoof();
+  const under = x => roof.blds.find(b => x >= b.x && x <= b.x + b.w);
+  const rText = (txt, col) => roof.txt.push({ x: roof.x - roof.cam + 40, y: roof.y - 150, txt, col, life: 1.1 });
+  const roofGain = () => (own('gopro') ? 1.5 : 1);
+  const doJump = () => {
+    if (roof.state !== 'run') { roof.charge = 0; return; }
+    const c = Math.min(1, roof.charge);
+    roof.vy = -(380 + 330 * c); roof.vx = RUN * (1 + .07 * Math.min(6, own('grip')));
+    roof.state = 'air'; roof.charge = 0;
+  };
+  const roofHand = h => {
+    const hg = roof.hang; if (roof.state !== 'hang' || !hg) return;
+    if (hg.lastHand === h) { hg.prog = Math.max(0, hg.prog - .05); return; }
+    hg.lastHand = h; hg.prog += .13 * (1 + .25 * Math.min(6, own('rgloves')));
+    if (hg.prog >= 1) {
+      roof.state = 'run'; roof.x = hg.b.x + 14; roof.y = hg.b.top; roof.vy = 0; roof.vx = RUN; roof.last = hg.b; roof.hang = null;
+      const bonus = perClick() * 20 * roofGain(); gain(bonus); rText('Залез! +' + fmt(bonus), '#5BE3B5');
+    }
+  };
+  const roofPhoto = auto => {
+    const b = under(roof.x);
+    if (roof.state !== 'run' || !b || !b.tall || b.shot) { if (!auto) rText('Фото — на высотке с антенной', '#A9A2D6'); return; }
+    b.shot = true; roof.flash = 1; S.photos = (S.photos || 0) + 1;
+    const bonus = perClick() * 150 * (own('cam') ? 3 : 1) * roofGain(); gain(bonus);
+    rText((auto ? '🚁 ' : '📸 ') + '+' + fmt(bonus), '#FFC93C');
+  };
+  const roofFall = () => { roof.state = 'fall'; roof.fallT = 1.5; roof.combo = 1; roof.vx *= .25; roof.hang = null; rText('Сорвался! Тент спас', '#FF5D73'); };
+
+  pressHold($('hj'), () => { roof.jumpHeld = true; }, () => { roof.jumpHeld = false; doJump(); });
+  pressHold($('hl'), () => roofHand('L'));
+  pressHold($('hr'), () => roofHand('R'));
+  $('photo').addEventListener('click', () => roofPhoto(false));
+  addEventListener('keydown', e => {
+    if (S.char !== 'r' || e.repeat) return;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); roof.jumpHeld = true; $('hj').classList.add('held'); }
+    else if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); roofHand('L'); }
+    else if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); roofHand('R'); }
+    else if (e.code === 'KeyF') roofPhoto(false);
+  });
+  addEventListener('keyup', e => { if (S.char === 'r' && (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW')) { roof.jumpHeld = false; $('hj').classList.remove('held'); doJump(); } });
+
+  const roofStep = dt => {
+    const r = roof; r.t += dt;
+    if (r.jumpHeld && r.state === 'run') r.charge = Math.min(1, r.charge + dt / .55);
+    const prevX = r.x, prevY = r.y;
+    if (r.state === 'run') {
+      r.x += RUN * dt; r.ph += dt * 14; r.dist += RUN * dt;
+      const b = under(r.x);
+      if (!b) {
+        if (r.jumpHeld) { r.jumpHeld = false; $('hj').classList.remove('held'); doJump(); }  // still holding at the edge: jump with the charge so far
+        else { r.state = 'air'; r.vy = 0; r.vx = RUN; }
+      }
+      else { r.last = b; gain(perClick() * 1.5 * r.combo * roofGain() * dt); if (own('drone') && b.tall && !b.shot) roofPhoto(true); }
+    } else if (r.state === 'air' || r.state === 'fall') {
+      r.vy += GRAV * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.ph += dt * 6;
+      if (r.state === 'air') {
+        const front = r.x + 10, pf = prevX + 10;
+        for (const b of r.blds) {
+          if (pf < b.x && front >= b.x && r.y > b.top + 2) {
+            if (r.y - 118 <= b.top + 12) { r.state = 'hang'; r.hang = { b, prog: 0, grip: 1, lastHand: null }; r.x = b.x - 12; r.y = b.top + 114; r.vy = 0; r.ph = 0; }
+            else roofFall();
+            break;
+          }
+        }
+        if (r.state === 'air' && r.vy > 0) {
+          const b = under(r.x);
+          if (b && prevY <= b.top && r.y >= b.top) {
+            r.y = b.top; r.vy = 0; r.state = 'run'; r.vx = RUN;
+            r.combo = Math.min(5, r.combo + .25 * (own('scarf') ? 1.6 : 1));
+            const bonus = perClick() * 8 * r.combo * roofGain(); gain(bonus); rText('+' + fmt(bonus) + ' ×' + r.combo.toFixed(1), '#5BE3B5');
+          }
+        }
+        if (r.state === 'air' && r.y > 560) roofFall();
+      } else if ((r.fallT -= dt) <= 0) {
+        const b = r.last; r.x = b.x + 30; r.y = b.top; r.vy = 0; r.vx = RUN; r.state = 'run';
+      }
+    } else if (r.state === 'hang') {
+      const h = r.hang; r.ph += dt * 5;
+      h.grip -= dt / (2.6 + .6 * Math.min(5, own('pack')));
+      h.prog = Math.max(0, h.prog - .15 * dt);
+      if (h.grip <= 0) { roofFall(); r.vy = 50; }
+    }
+    r.cam += (r.x - PX - r.cam) * Math.min(1, dt * 6);
+    while (r.blds.length > 3 && r.blds[0].x + r.blds[0].w < r.cam - 500 && r.blds[0] !== r.last) r.blds.shift();
+    let lb = r.blds[r.blds.length - 1];
+    while (lb.x < r.cam + 1500) { const nb = newB(lb.x + lb.w + rGap(), lb.top); r.blds.push(nb); lb = nb; }
+    r.flash = Math.max(0, r.flash - dt * 2.5);
+  };
+
+  const drawRoof = dt => {
+    const g = rg, r = roof, k = RV.k * dpr;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, roc.width, roc.height);
+    g.setTransform(k, 0, 0, k, RV.x * dpr, RV.y * dpr);
+    const sky = g.createLinearGradient(0, 0, 0, 480); sky.addColorStop(0, '#0B0828'); sky.addColorStop(.6, '#2C1F78'); sky.addColorStop(1, '#B8457A');
+    g.fillStyle = sky; g.fillRect(-420, -300, 1800, 900);
+    g.fillStyle = '#F4F0FF';
+    for (const s of starsR) { g.globalAlpha = .45 + .4 * Math.sin(r.t * 2 + s.x); g.fillRect(s.x, s.y, s.r, s.r); }
+    g.globalAlpha = 1;
+    g.fillStyle = '#FFE9B0'; g.beginPath(); g.arc(760, 90, 34, 0, 7); g.fill();
+    g.fillStyle = '#1C1450';
+    let ox = -((r.cam * .2) % farW) - 420, i = 0;
+    while (ox < 1380) { const b = farB[i % farB.length]; g.fillRect(ox, 360 - b.h, b.w - 4, b.h + 200); ox += b.w; i++; }
+    for (const b of r.blds) {
+      const x = b.x - r.cam; if (x > 1400 || x + b.w < -440) continue;
+      g.fillStyle = b.tall ? '#2B2068' : '#231A55'; g.fillRect(x, b.top, b.w, 600);
+      g.fillStyle = '#3E3878'; g.fillRect(x - 4, b.top - 6, b.w + 8, 8);
+      for (let wy = 30; b.top + wy < 490; wy += 34) for (let lx = 16; lx < b.w - 20; lx += 30) {
+        const h = Math.sin(b.seed + lx * .37 + wy * 1.7);
+        g.fillStyle = h > .55 ? '#FFD36B' : h > .25 ? '#4B3D94' : '#1A1342'; g.fillRect(x + lx, b.top + wy, 14, 18);
+      }
+      if (b.tall) {
+        const ax = x + b.w * .6;
+        g.strokeStyle = '#8C7BFF'; g.lineWidth = 4; g.beginPath(); g.moveTo(ax, b.top - 6); g.lineTo(ax, b.top - 92); g.stroke();
+        g.fillStyle = Math.sin(r.t * 5) > 0 ? '#FF5D73' : '#5A1F33'; g.beginPath(); g.arc(ax, b.top - 94, 5, 0, 7); g.fill();
+        if (!b.shot) { g.font = '30px sans-serif'; g.textAlign = 'center'; g.fillText('📸', ax - 44, b.top - 40 + Math.sin(r.t * 4) * 4); }
+      } else if (b.deco === 0) { g.fillStyle = '#3A3570'; g.fillRect(x + b.w * .3, b.top - 30, 40, 24); g.fillRect(x + b.w * .3 + 6, b.top - 40, 28, 10); }
+      else if (b.deco === 1) { g.fillStyle = '#4A3F86'; g.fillRect(x + b.w * .55, b.top - 64, 50, 46); g.fillStyle = '#3A3570'; g.fillRect(x + b.w * .55 + 6, b.top - 18, 6, 18); g.fillRect(x + b.w * .55 + 38, b.top - 18, 6, 18); }
+      for (let q = 0; q < 7; q++) { g.fillStyle = q % 2 ? '#F4F0FF' : '#FF5D73'; g.fillRect(x + b.w + 4 + q * 22, 462, 22, 20); }
+    }
+    const px = r.x - r.cam, pose = r.state === 'run' ? 'run' : r.state;
+    if (r.charge > 0 && r.state === 'run') { g.strokeStyle = '#FFC93C'; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.arc(px + 4, r.y - 60, 72, -Math.PI / 2, -Math.PI / 2 + r.charge * Math.PI * 2); g.stroke(); }
+    drawGuy(g, { x: px, y: r.y, ph: r.ph, pose, t: r.t, fit: { hood: '#0E0B22', pants: '#2E2A4A', hat: 'beanie', pack: own('pack') > 0, gloves: own('rgloves') ? '#5BE3B5' : null, cam: own('cam') > 0, scarf: own('scarf') > 0 } });
+    if (own('drone')) {
+      const dx = px + 80 + Math.sin(r.t * 2) * 10, dy = r.y - 175 + Math.sin(r.t * 3) * 8;
+      g.fillStyle = '#F4F0FF'; g.fillRect(dx - 15, dy - 3, 30, 7);
+      g.strokeStyle = '#A9A2D6'; g.lineWidth = 2;
+      for (const sd of [-1, 1]) { const w = 11 * Math.cos(r.t * 40); g.beginPath(); g.moveTo(dx + sd * 15 - w, dy - 6); g.lineTo(dx + sd * 15 + w, dy - 6); g.stroke(); }
+      g.fillStyle = '#FF5D73'; g.beginPath(); g.arc(dx, dy + 6, 3, 0, 7); g.fill();
+    }
+    drawTexts(g, r.txt, dt);
+    if (r.flash) { g.fillStyle = `rgba(255,255,255,${r.flash * .8})`; g.fillRect(-420, -300, 1800, 900); }
+  };
+  const roofFrame = dt => { if (S.char !== 'r') return; if (!roc.width) sizeRoof(); roofStep(dt); drawRoof(dt); };
+  const ROOF_ST = { run: ['Бежит по крышам', 'st-balance'], air: ['В прыжке!', 'st-scrape'], hang: ['Висит! Жми Левая — Правая', 'st-scrape'], fall: ['Сорвался… тент спас', 'st-crash'] };
+  const roofUI = () => {
+    if (S.char !== 'r') return;
+    const st = ROOF_ST[roof.state], el = $('rfstate');
+    if (el.textContent !== st[0]) { el.textContent = st[0]; el.className = st[1]; }
+    $('rfrate').textContent = `×${roof.combo.toFixed(1)} · 📸 ${S.photos || 0}`;
+    $('rfhud').textContent = Math.floor(roof.dist / 40) + ' м';
+    const h = roof.hang;
+    $('gripbar').style.width = (h ? Math.max(0, h.grip) * 100 : 0) + '%';
+    $('pullbar').style.width = (h ? Math.min(1, h.prog) * 100 : 0) + '%';
+    $('hl').classList.toggle('next', !!h && h.lastHand !== 'L');
+    $('hr').classList.toggle('next', !!h && h.lastHand === 'L');
+  };
+
+  // ===== Никита Диггер: заброшенный бункер с фонарём =====
+  const digwrap = $('digwrap'), dgc = $('digc'), dg = dgc.getContext('2d');
+  const DV = { k: 1, x: 0, y: 0 };
+  const dark = document.createElement('canvas'), dk = dark.getContext('2d');
+  function sizeDig() { if (fitScene(digwrap, dgc, DV)) { dark.width = dgc.width; dark.height = dgc.height; } }
+  addEventListener('resize', sizeDig);
+  const FLOOR = 390, CEIL = 110;
+  const ARTS = [['🪙', 'Старая монета'], ['🗝️', 'Ржавый ключ'], ['🧭', 'Компас'], ['⌚', 'Карманные часы'], ['📻', 'Радиоприёмник'], ['🪖', 'Старая каска'], ['🗺️', 'Карта 1960 года'], ['💡', 'Лампочка Ильича'], ['📟', 'Пейджер'], ['🎫', 'Билет на трамвай']];
+  const dig = { x: 120, y: FLOOR, vy: 0, dir: 1, state: 'walk', lamp: true, bat: 100, maxX: 120, cam: 0, feats: [], genX: 460, lastCp: 120, cp: 120, ph: 0, left: false, right: false, fallT: 0, txt: [], t: 0, dogX: 60, beep: 0 };
+  const genDig = upto => {
+    while (dig.genX < upto) {
+      const x = dig.genX, r = Math.random();
+      if (x - dig.lastCp > 650) { dig.feats.push({ t: 'cp', x: x - 30, lit: false }); dig.lastCp = x - 30; }
+      if (r < .3) dig.feats.push({ t: 'hole', x, w: 70 + Math.random() * 50 });
+      else if (r < .5) dig.feats.push({ t: 'puddle', x, w: 90 + Math.random() * 70 });
+      else if (r < .82) dig.feats.push({ t: 'art', x, k: Math.floor(Math.random() * ARTS.length), got: false });
+      else dig.feats.push({ t: 'rat', x, vx: 0 });
+      dig.genX += 170 + Math.random() * 170;
+    }
+  };
+  genDig(1600);
+  const holeAt = x => dig.feats.some(f => f.t === 'hole' && x > f.x + 10 && x < f.x + f.w - 10);
+  const puddleAt = x => dig.feats.some(f => f.t === 'puddle' && x > f.x && x < f.x + f.w);
+  const lampLen = () => 260 + 55 * Math.min(5, own('lamp'));
+  const maxBat = () => 100 * (1 + .5 * Math.min(4, own('battery')));
+  const dText = (txt, col) => dig.txt.push({ x: dig.x - dig.cam, y: dig.y - 150, txt, col, life: 1.2 });
+  const collect = (f, byDog) => {
+    if (f.got) return; f.got = true;
+    S.found = S.found || {}; const first = !S.found[f.k]; S.found[f.k] = (S.found[f.k] || 0) + 1;
+    const bonus = perClick() * 250 * (own('detector') ? 1.5 : 1); gain(bonus);
+    dText((byDog ? '🐕 ' : '') + ARTS[f.k][0] + ' +' + fmt(bonus), '#FFC93C');
+    if (first) toast(ARTS[f.k][0], ARTS[f.k][1], 'Новая находка в коллекции');
+  };
+  const digTake = () => {
+    let best = null, bd = 60;
+    for (const f of dig.feats) if (f.t === 'art' && !f.got && Math.abs(f.x - dig.x) < bd) { best = f; bd = Math.abs(f.x - dig.x); }
+    if (best) collect(best, false); else dText('Тут ничего нет', '#A9A2D6');
+  };
+  const digJump = () => { if (dig.state === 'walk') { dig.vy = -560; dig.state = 'air'; } };
+  const digLamp = () => { if (dig.lamp || dig.bat > 5) dig.lamp = !dig.lamp; digUI(); };
+  pressHold($('dl'), () => { dig.left = true; }, () => { dig.left = false; });
+  pressHold($('dr'), () => { dig.right = true; }, () => { dig.right = false; });
+  pressHold($('dj'), digJump);
+  $('dlamp').addEventListener('click', digLamp);
+  $('dtake').addEventListener('click', digTake);
+  const DKEYS = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+  addEventListener('keydown', e => {
+    if (S.char !== 'd') return;
+    const k = DKEYS[e.code];
+    if (k) { e.preventDefault(); dig[k] = true; $(k === 'left' ? 'dl' : 'dr').classList.add('held'); return; }
+    if (e.repeat) return;
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); digJump(); }
+    else if (e.code === 'KeyF') digLamp();
+    else if (e.code === 'KeyE') digTake();
+  });
+  addEventListener('keyup', e => { const k = DKEYS[e.code]; if (k) { dig[k] = false; $(k === 'left' ? 'dl' : 'dr').classList.remove('held'); } });
+
+  const digStep = dt => {
+    const d = dig; d.t += dt;
+    if (d.state === 'fallen') { if ((d.fallT -= dt) <= 0) { d.x = d.cp; d.y = FLOOR; d.vy = 0; d.state = 'walk'; } }
+    else {
+      const mv = (d.right ? 1 : 0) - (d.left ? 1 : 0);
+      if (mv) d.dir = mv;
+      const slow = d.state === 'walk' && puddleAt(d.x) && !own('boots') ? .45 : 1;
+      d.x = Math.max(40, d.x + mv * 160 * slow * dt);
+      if (mv && d.state === 'walk') d.ph += dt * 11 * slow;
+      if (d.state === 'walk' && holeAt(d.x)) { d.state = 'drop'; d.vy = 0; }
+      if (d.state === 'air' || d.state === 'drop') {
+        d.vy += 1500 * dt; d.y += d.vy * dt;
+        if (d.state === 'air' && d.y >= FLOOR) { if (holeAt(d.x)) d.state = 'drop'; else { d.y = FLOOR; d.vy = 0; d.state = 'walk'; } }
+        if (d.y > 560) { d.state = 'fallen'; d.fallT = 1.3; d.bat = Math.max(0, d.bat - 15); dText('Плюх! Назад к фонарю', '#FF5D73'); }
+      }
+    }
+    if (d.lamp) { d.bat -= 7 * dt * (1 - .12 * Math.min(4, own('battery'))); if (d.bat <= 0) { d.bat = 0; d.lamp = false; dText('Фонарь сел!', '#FF5D73'); } }
+    else d.bat = Math.min(maxBat(), d.bat + 5 * dt);
+    if (d.x > d.maxX) { gain(perClick() * .15 * (d.x - d.maxX)); d.maxX = d.x; }
+    for (const f of d.feats) if (f.t === 'cp' && !f.lit && d.x > f.x) { f.lit = true; d.cp = f.x; dText('🕯️ Точка сохранения', '#5BE3B5'); }
+    if (own('dog')) {
+      d.dogX += (d.x - d.dir * 55 - d.dogX) * Math.min(1, dt * 3);
+      for (const f of d.feats) if (f.t === 'art' && !f.got && Math.abs(f.x - d.dogX) < 25) collect(f, true);
+    }
+    for (const f of d.feats) if (f.t === 'rat') {
+      const lit = d.lamp && (f.x - d.x) * d.dir > 0 && Math.abs(f.x - d.x) < lampLen();
+      if (lit) f.vx += (Math.sign(f.x - d.x) * 300 - f.vx) * Math.min(1, dt * 4); else f.vx *= 1 - Math.min(1, dt * 2);
+      f.x += f.vx * dt;
+    }
+    if (own('detector')) { let near = 1e9; for (const f of d.feats) if (f.t === 'art' && !f.got) near = Math.min(near, Math.abs(f.x - d.x)); d.beep = near < 260 ? 1 - near / 260 : 0; } else d.beep = 0;
+    d.cam += (d.x - 360 - d.cam) * Math.min(1, dt * 5);
+    genDig(d.cam + 1500);
+    if (d.feats.length > 60) d.feats = d.feats.filter(f => f.x > d.cam - 900 || (f.t === 'cp' && f.x >= d.cp));
+  };
+
+  const drawDog = (g, x, y, t, dir) => {
+    g.save(); g.translate(x, y); g.scale(dir, 1);
+    g.fillStyle = '#C98A4B'; rr(g, -22, -30, 40, 18, 9); g.fill();
+    g.fillRect(-18, -14, 6, 14); g.fillRect(8, -14, 6, 14);
+    g.beginPath(); g.arc(22, -34, 11, 0, 7); g.fill();
+    g.fillStyle = '#8A5A2B'; g.beginPath(); g.ellipse(18, -42, 4, 8, -.4, 0, 7); g.fill();
+    g.strokeStyle = '#C98A4B'; g.lineWidth = 5; g.lineCap = 'round'; g.beginPath(); g.moveTo(-22, -26); g.lineTo(-32, -38 + Math.sin(t * 14) * 4); g.stroke();
+    g.fillStyle = '#120E33'; g.beginPath(); g.arc(26, -36, 2, 0, 7); g.fill();
+    g.restore();
+  };
+  const drawDig = dt => {
+    const g = dg, d = dig, k = DV.k * dpr, L = -420, R = 1380;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, dgc.width, dgc.height);
+    g.setTransform(k, 0, 0, k, DV.x * dpr, DV.y * dpr);
+    g.fillStyle = '#2A2350'; g.fillRect(L, -300, R - L, 900);
+    g.fillStyle = '#433878';
+    const off = ((d.cam % 60) + 60) % 60;
+    for (let y = CEIL; y < FLOOR; y += 26) { const sh = ((y / 26) & 1) * 30; for (let x = L - off - sh; x < R; x += 60) g.fillRect(x, y + 2, 54, 21); }
+    g.fillStyle = '#120E26'; g.fillRect(L, -300, R - L, CEIL + 300);
+    g.strokeStyle = '#4A3F86'; g.lineWidth = 10; g.beginPath(); g.moveTo(L, CEIL + 18); g.lineTo(R, CEIL + 18); g.stroke();
+    g.strokeStyle = '#3A3570'; g.lineWidth = 6; g.beginPath(); g.moveTo(L, CEIL + 36); g.lineTo(R, CEIL + 36); g.stroke();
+    g.fillStyle = '#5A4FA0'; const po = ((d.cam % 160) + 160) % 160; for (let x = L - po; x < R; x += 160) g.fillRect(x, CEIL + 9, 10, 20);
+    g.fillStyle = '#463C78'; g.fillRect(L, FLOOR, R - L, 300);
+    g.fillStyle = '#5E52A0'; g.fillRect(L, FLOOR, R - L, 6);
+    for (const f of d.feats) {
+      const x = f.x - d.cam; if (x < L - 200 || x > R + 50) continue;
+      if (f.t === 'hole') { g.fillStyle = '#05040C'; g.fillRect(x, FLOOR, f.w, 300); g.fillStyle = 'rgba(70,90,170,.45)'; g.fillRect(x + 8, 468, f.w - 16, 6); }
+      else if (f.t === 'puddle') { g.fillStyle = 'rgba(80,110,200,.6)'; g.beginPath(); g.ellipse(x + f.w / 2, FLOOR + 6, f.w / 2, 7, 0, 0, 7); g.fill(); }
+      else if (f.t === 'art' && !f.got) { g.font = '30px sans-serif'; g.textAlign = 'center'; g.fillText(ARTS[f.k][0], x, FLOOR - 6); const s = (Math.sin(d.t * 5 + f.x) + 1) / 2; g.fillStyle = `rgba(255,240,180,${.3 + .7 * s})`; sparkle(g, x + 16, FLOOR - 36, 4 + 6 * s); }
+      else if (f.t === 'cp') { g.fillStyle = '#4A3F86'; g.fillRect(x - 4, 168, 8, 30); g.fillStyle = f.lit ? '#FFD36B' : '#3A3360'; g.beginPath(); g.arc(x, 210, 12, 0, 7); g.fill(); }
+      else if (f.t === 'rat') { const sd = Math.sign(f.vx || 1); g.fillStyle = '#7A7598'; g.beginPath(); g.ellipse(x, FLOOR - 7, 14, 7, 0, 0, 7); g.fill(); g.beginPath(); g.arc(x + sd * 13, FLOOR - 10, 5, 0, 7); g.fill(); g.strokeStyle = '#7A7598'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - sd * 14, FLOOR - 6); g.lineTo(x - sd * 32, FLOOR - 2); g.stroke(); }
+    }
+    if (own('dog')) drawDog(g, d.dogX - d.cam, FLOOR, d.t, d.dir);
+    const px = d.x - d.cam, moving = d.left || d.right;
+    drawGuy(g, { x: px, y: d.y, ph: d.ph, dir: d.dir, pose: d.state === 'walk' ? (moving ? 'run' : 'stand') : d.state === 'air' ? 'air' : 'fall', t: d.t,
+      fit: { hood: '#E8812A', pants: '#3A3360', hat: own('helmet2') ? 'helmet' : 'bandana', pack: true, packC: '#6B668F', boots: own('boots') > 0, overalls: '#C96A1E' } });
+    // darkness with light cut out
+    dk.setTransform(1, 0, 0, 1, 0, 0); dk.globalCompositeOperation = 'source-over'; dk.clearRect(0, 0, dark.width, dark.height);
+    dk.fillStyle = 'rgba(3,2,10,.95)'; dk.fillRect(0, 0, dark.width, dark.height);
+    dk.setTransform(k, 0, 0, k, DV.x * dpr, DV.y * dpr); dk.globalCompositeOperation = 'destination-out';
+    const glow = (x, y, r, a) => { const gr = dk.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); dk.fillStyle = gr; dk.beginPath(); dk.arc(x, y, r, 0, 7); dk.fill(); };
+    const hx = px + d.dir * 16, hy = d.y - 106;
+    glow(px, d.y - 60, 60, .55);
+    if (d.lamp) {
+      const len = lampLen(), sp = .42, c = d.dir > 0 ? .25 : Math.PI - .25;
+      dk.save(); dk.beginPath(); dk.moveTo(hx, hy); dk.arc(hx, hy, len, c - sp, c + sp); dk.closePath(); dk.clip();
+      const gr = dk.createRadialGradient(hx, hy, 0, hx, hy, len); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.7, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      dk.fillStyle = gr; dk.fillRect(hx - len, hy - len, len * 2, len * 2); dk.restore();
+    }
+    if (own('helmet2')) glow(hx, hy + 40, 130, .8);
+    for (const f of d.feats) if (f.t === 'cp' && f.lit) glow(f.x - d.cam, 215, 115, .9);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(dark, 0, 0);
+    g.setTransform(k, 0, 0, k, DV.x * dpr, DV.y * dpr);
+    if (d.lamp) { g.globalCompositeOperation = 'lighter'; const len = lampLen(), c = d.dir > 0 ? .25 : Math.PI - .25; g.fillStyle = 'rgba(255,200,120,.12)'; g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, len, c - .42, c + .42); g.closePath(); g.fill(); g.globalCompositeOperation = 'source-over'; }
+    if (own('map')) { g.setLineDash([8, 6]); g.strokeStyle = 'rgba(255,201,60,.65)'; g.lineWidth = 2; for (const f of d.feats) if (f.t === 'hole') g.strokeRect(f.x - d.cam, FLOOR, f.w, 60); g.setLineDash([]); }
+    if (d.beep > 0) { const ph = (d.t * (1 + d.beep * 4)) % 1; g.strokeStyle = `rgba(91,227,181,${(1 - ph) * .8})`; g.lineWidth = 3; g.beginPath(); g.arc(px, d.y - 60, 30 + ph * 90, 0, 7); g.stroke(); }
+    drawTexts(g, d.txt, dt);
+  };
+  const digFrame = dt => { if (S.char !== 'd') return; if (!dgc.width) sizeDig(); digStep(dt); drawDig(dt); };
+  const DIG_ST = { walk: ['Исследует бункер', 'st-balance'], air: ['Прыжок!', 'st-scrape'], drop: ['Падает в яму!', 'st-crash'], fallen: ['Плюх! Назад к фонарю', 'st-crash'] };
+  function digUI() {
+    if (S.char !== 'd') return;
+    const st = DIG_ST[dig.state], el = $('dgstate');
+    if (el.textContent !== st[0]) { el.textContent = st[0]; el.className = st[1]; }
+    const found = S.found || {};
+    $('dgrate').textContent = `Коллекция: ${Object.keys(found).length}/${ARTS.length}`;
+    $('batbar').style.width = Math.max(0, dig.bat / maxBat() * 100) + '%';
+    const lbl = dig.lamp ? '🔦 Фонарь: ВКЛ' : '🔦 Фонарь: ВЫКЛ', lb = $('dlamp');
+    if (lb.textContent !== lbl) { lb.textContent = lbl; lb.setAttribute('aria-pressed', dig.lamp); }
+    $('dghud').textContent = Math.floor(dig.maxX / 40) + ' м';
+    $('dghud2').textContent = ARTS.filter((_, i) => found[i]).map(a => a[0]).join(' ');
+  }
+
   // golden star
   const star = $('star'), bb = $('boostbar');
   const spawnStar = () => {
@@ -910,8 +1361,8 @@ button{touch-action:manipulation}
     if (now >= boostUntil && app.classList.contains('boost-on')) app.classList.remove('boost-on');
     const showBB = now < boostUntil; if (bb.hidden === showBB) bb.hidden = !showBB;
     if (showBB) bb.textContent = `⭐ Буст ×7 · ${Math.ceil((boostUntil - now) / 1000)} с`;
-    rideFrame(dt);
-    acc += dt; if (acc > .1) { acc = 0; update(); rideUI(); }
+    rideFrame(dt); roofFrame(dt); digFrame(dt);
+    acc += dt; if (acc > .1) { acc = 0; update(); rideUI(); roofUI(); digUI(); }
     g.clearRect(0, 0, W, H);
     const t = now / 1000;
     [['255,93,115', .45, .11, 0], ['255,201,60', .35, .09, 2], ['140,123,255', .55, .06, 4]].forEach(([c, r, s, p]) => {
@@ -932,10 +1383,10 @@ button{touch-action:manipulation}
   setInterval(save, 5000);
   addEventListener('pagehide', save);
 
-  applyGear(); renderShop(); sizeRide(); requestAnimationFrame(loop);
+  applyGear(); renderShop(); sizeRide(); sizeRoof(); sizeDig(); requestAnimationFrame(loop);
 
   // test hook
-  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride };
+  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride, roof, dig, jump: doJump };
 })();
 </script>
 </body>
