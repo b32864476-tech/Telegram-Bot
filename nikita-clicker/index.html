@@ -121,7 +121,9 @@ button{touch-action:manipulation}
 .ridestat{display:flex;justify-content:space-between;align-items:baseline;gap:12px;height:1.6em;white-space:nowrap}
 .ridestat b{font-family:var(--f-display);font-weight:900;font-size:15px;overflow:hidden;text-overflow:ellipsis}
 .ridestat span{font-family:var(--f-mono);font-size:13px;color:var(--mint);font-variant-numeric:tabular-nums}
-.st-ground{color:var(--muted)}.st-balance{color:var(--mint)}.st-scrape{color:var(--sun)}.st-crash{color:var(--coral)}
+.st-ground{color:var(--muted)}.st-cruise{color:var(--paper)}
+.stunt{justify-self:center;border:2px solid var(--sun);background:var(--sun);color:var(--ink);border-radius:99px;padding:10px 22px;font-family:var(--f-display);font-weight:900;font-size:14px;cursor:pointer;min-width:17em}
+.stunt[aria-pressed="false"]{background:transparent;color:var(--sun)}.st-balance{color:var(--mint)}.st-scrape{color:var(--sun)}.st-crash{color:var(--coral)}
 .pedals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .pedal{border:0;border-radius:20px;padding:24px 10px;font-family:var(--f-display);font-weight:900;font-size:clamp(16px,2.4vw,22px);text-transform:uppercase;cursor:pointer;touch-action:none;transition:transform .06s,box-shadow .06s}
 .pedal.brake{background:var(--coral);color:var(--paper);box-shadow:0 8px 0 #A62B40}
@@ -350,11 +352,12 @@ button{touch-action:manipulation}
       <div class="ride" id="ride">
         <div class="gauge" aria-hidden="true"><span class="z z1"></span><span class="z z2"></span><span class="z z3"></span><span class="z z4"></span><i id="needle"></i></div>
         <div class="ridestat"><b id="rstate" class="st-ground">Переднее колесо на земле</b><span id="rrate">+0/с</span></div>
+        <button class="stunt" id="stunt" type="button" aria-pressed="true">Режим станта: ВКЛ</button>
         <div class="pedals">
           <button class="pedal brake" id="brake" type="button">◀ Тормоз</button>
           <button class="pedal gas" id="gas" type="button">Газ ▶</button>
         </div>
-        <div class="hint">Держи кнопки или стрелки ← → на клавиатуре. Газ задирает переднее колесо и разгоняет, тормоз опускает. Зелёная зона — баланс, жёлтая — хвост скребёт асфальт (×2), красная — перевернёшься. Чем быстрее едешь, тем больше крутости.</div>
+        <div class="hint">Держи кнопки или стрелки ← → на клавиатуре. Пробел включает и выключает режим станта. Без станта газ просто разгоняет — можно набрать скорость и включить стант на ходу. В станте газ задирает переднее колесо, тормоз опускает. Зелёная зона — баланс, жёлтая — хвост скребёт асфальт (×2), красная — перевернёшься. Чем быстрее едешь, тем больше крутости.</div>
       </div>
       <div class="evo">
         <div class="evo-head"><span id="evoLabel">Следующий аксессуар</span><b id="next">Тёмные очки</b></div>
@@ -658,7 +661,7 @@ button{touch-action:manipulation}
   const zw = [8, TAIL_TH - 8, CRASH - TAIL_TH].map(v => v / GMAX * 100 + '%');
   document.querySelector('.z1').style.width = zw[0]; document.querySelector('.z2').style.width = zw[1]; document.querySelector('.z3').style.width = zw[2];
 
-  const ride = { th: 0, w: 0, thr: 0, brk: 0, gas: false, brake: false, v: 20, camX: 0, t: 0, combo: 1, zone: 'ground', rate: 0,
+  const ride = { stunt: true, th: 0, w: 0, thr: 0, brk: 0, gas: false, brake: false, v: 20, camX: 0, t: 0, combo: 1, zone: 'ground', rate: 0,
     nextFlip: 12, bump: 1.5, shake: 0, wheelA: 0, crash: null, txtT: 0, acc: 0, alpha: 1 };
   let fire = [], sparks = [], dust = [], texts = [];
 
@@ -683,6 +686,9 @@ button{touch-action:manipulation}
     btn.addEventListener('contextmenu', e => e.preventDefault());
   };
   hold($$('gas'), 'gas'); hold($$('brake'), 'brake');
+  const toggleStunt = () => { ride.stunt = !ride.stunt; rideUI(); };
+  $$('stunt').addEventListener('click', toggleStunt);
+  addEventListener('keydown', e => { if (S.char === 's' && (e.code === 'Space' || e.code === 'KeyE') && !e.repeat) { e.preventDefault(); toggleStunt(); } });
   const KEYS = { ArrowRight: 'gas', ArrowUp: 'gas', KeyD: 'gas', KeyW: 'gas', ArrowLeft: 'brake', ArrowDown: 'brake', KeyA: 'brake', KeyS: 'brake' };
   addEventListener('keydown', e => { const k = KEYS[e.code]; if (k && S.char === 's') { e.preventDefault(); ride[k] = true; $$(k).classList.add('held'); } });
   addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) { ride[k] = false; $$(k).classList.remove('held'); } });
@@ -701,7 +707,7 @@ button{touch-action:manipulation}
     // gravity torque: zero when the centre of mass is right above the rear axle
     const c = rot(COM, r.th);
     let a = -3.2 * c.x;                                              // COM ahead of axle (c.x > 0) → front falls
-    a += 430 * r.thr * (1.25 - r.v / 120);                           // engine torque, weaker at speed (higher gear)
+    if (r.stunt) a += 430 * r.thr * (1.25 - r.v / 160);              // engine torque lifts the front only in stunt mode
     if (r.th > 0) a -= 600 * r.brk;                                  // rear brake pitches the front down
     if ((r.bump -= dt) <= 0) { r.w += (Math.random() - .4) * 28; r.bump = .7 + Math.random() * 2; }
     const tip = rot(TAIL, r.th), pen = HUB_Y + tip.y - GROUND;
@@ -714,11 +720,11 @@ button{touch-action:manipulation}
     if (r.th <= 0 && wPrev < -110) { r.shake = Math.min(1, -wPrev / 350); puff(HUB_X + 150, GROUND, 10, '200,190,240'); r.w = Math.max(r.w, wPrev * -.15); }
     if (r.th >= CRASH) return startCrash();
 
-    r.zone = r.th < 8 ? 'ground' : scrape ? 'scrape' : 'balance';
-    if (r.zone === 'ground') { r.t = 0; r.nextFlip = 12; } else r.t += dt;
+    r.zone = r.th < 8 ? (r.stunt ? 'ground' : 'cruise') : scrape ? 'scrape' : 'balance';
+    if (r.zone === 'ground' || r.zone === 'cruise') { r.t = 0; r.nextFlip = 12; } else r.t += dt;
     r.combo = 1 + Math.min(4, r.t / 5);
     const speedK = .5 + r.v / 60;
-    r.rate = r.zone === 'ground' ? 0 : perClick() * 6 * r.combo * speedK * (scrape ? 2 : 1);
+    r.rate = r.zone === 'ground' ? 0 : r.zone === 'cruise' ? perClick() * 1.2 * speedK * (r.v / 30) : perClick() * 6 * r.combo * speedK * (scrape ? 2 : 1);
     if (r.rate) {
       gain(r.rate * dt); r.acc += r.rate * dt; r.txtT += dt;
       if (r.txtT > .7) { addText(HUB_X + 230, 250, '+' + fmt(r.acc), scrape ? '#FFC93C' : '#5BE3B5'); r.txtT = 0; r.acc = 0; }
@@ -854,7 +860,7 @@ button{touch-action:manipulation}
     rx.globalAlpha = 1;
   };
 
-  const STATES = { ground: ['Переднее колесо на земле', 'st-ground'], balance: ['Баланс!', 'st-balance'], scrape: ['Хвост скребёт асфальт ×2', 'st-scrape'], crash: ['Перевернулся! Поднимаемся…', 'st-crash'] };
+  const STATES = { cruise: ['Едет на двух колёсах', 'st-cruise'], ground: ['Переднее колесо на земле', 'st-ground'], balance: ['Баланс!', 'st-balance'], scrape: ['Хвост скребёт асфальт ×2', 'st-scrape'], crash: ['Перевернулся! Поднимаемся…', 'st-crash'] };
   const rideUI = () => {
     if (S.char !== 's') return;
     const th = ride.crash ? CRASH + 4 : ride.th;
@@ -863,6 +869,8 @@ button{touch-action:manipulation}
     const st = $$('rstate'); if (st.textContent !== txt) { st.textContent = txt; st.className = cls; }
     $$('rrate').textContent = ride.rate ? `+${fmt(ride.rate)}/с · ×${ride.combo.toFixed(1)}` : '+0/с';
     $$('speedo').textContent = Math.round(ride.v) + ' км/ч';
+    const sb = $$('stunt'), on = ride.stunt, lbl = on ? 'Режим станта: ВКЛ' : 'Режим станта: ВЫКЛ';
+    if (sb.textContent !== lbl) { sb.textContent = lbl; sb.setAttribute('aria-pressed', on); }
   };
 
   // golden star
