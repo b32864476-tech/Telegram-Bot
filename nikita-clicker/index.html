@@ -197,7 +197,7 @@ button{touch-action:manipulation}
 .item .own{font-family:var(--f-display);font-weight:900;font-size:20px;line-height:1.1;color:var(--paper);opacity:.85}
 .item.flash{animation:flash .4s}
 @keyframes flash{40%{background:var(--sun);color:var(--ink)}}
-.shop-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;font-size:12px;color:var(--muted)}
+.shop-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 12px;margin-top:14px;font-size:12px;color:var(--muted)}
 .reset{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:99px;padding:6px 12px;font:inherit;font-size:12px;cursor:pointer;min-width:9.5em}
 .reset.armed{border-color:var(--coral);color:var(--coral)}
 
@@ -409,7 +409,7 @@ button{touch-action:manipulation}
           <button class="pedal gas" id="dr" type="button">▶</button>
         </div>
         <div class="pads2"><button class="pill" id="dlamp" type="button" aria-pressed="true">🔦 Фонарь: ВКЛ</button><button class="pill" id="dtake" type="button">✋ Взять</button></div>
-        <div class="hint">Иди с фонарём и ищи находки — они блестят в луче. Ямы видно только при свете, перепрыгивай их. Фонарь садится; выключи его, чтобы подзарядить. Клавиши: ← → — идти, пробел — прыжок, F — фонарь, E — взять. Это мультяшная игра: в жизни в заброшенные тоннели не ходят.</div>
+        <div class="hint">Иди с фонарём и ищи находки — они блестят в луче. Ямы видно только при свете, перепрыгивай их. Фонарь садится; выключи его, чтобы подзарядить. Иногда приезжают МЧС и заваривают выход — тогда ползи к трубе смерти, жми ◀ и ▶ по очереди. Труба может закрыться (50%), тогда спасатели вытащат, но заберут 10% крутости. Клавиши: ← → — идти, пробел — прыжок, F — фонарь, E — взять. Это мультяшная игра: в жизни в заброшенные тоннели не ходят.</div>
       </div>
       <div class="evo">
         <div class="evo-head"><span id="evoLabel">Следующий аксессуар</span><b id="next">Тёмные очки</b></div>
@@ -427,6 +427,7 @@ button{touch-action:manipulation}
       <div class="list" id="list"></div>
       <div class="shop-foot">
         <span id="clicks">Кликов: 0</span>
+        <span id="savest">💾 Сохраняется в браузере</span>
         <button class="reset" id="reset" type="button">Начать заново</button>
       </div>
     </aside>
@@ -525,13 +526,30 @@ button{touch-action:manipulation}
     { at:1000000000, e:'🔦', t:'Никита Диггер', cls:'', rank:'Повелитель вселенной', unlock:'d' }
   ];
 
-  const fresh = () => ({ score:0, earned:0, clicks:0, own:{}, lvl:0, char:'n', photos:0, found:{} });
+  const fresh = () => ({ score:0, earned:0, clicks:0, own:{}, lvl:0, char:'n', photos:0, found:{}, inj:{}, digLvl:1 });
   let S = fresh();
   try { const raw = localStorage.getItem('nikita-clicker'); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
   const hot = window.claude && window.claude.hot;
   if (hot && hot.data && hot.data.S) S = Object.assign(fresh(), hot.data.S);
   if (hot && hot.snapshot) hot.snapshot(() => ({ S }));
-  const save = () => { try { localStorage.setItem('nikita-clicker', JSON.stringify(S)); } catch (e) {} };
+  // Progress is kept twice: in this browser and in the viewer's private cloud record on claude.ai
+  // (survives blocked browser storage, other devices and other browsers).
+  let cloudDoc = null, cloudBusy = false, cloudLast = '', cloudAt = 0, localOk = true;
+  const setSaveStatus = () => {
+    const el = document.getElementById('savest'); if (!el) return;
+    el.textContent = cloudDoc ? '☁️ Сохраняется в облаке' : localOk ? '💾 Сохраняется в браузере' : '⚠️ Сохранение недоступно';
+  };
+  const cloudSave = force => {
+    if (!cloudDoc || cloudBusy) return;
+    const js = JSON.stringify(S), now = Date.now();
+    if (js === cloudLast || (!force && now - cloudAt < 8000)) return;
+    cloudBusy = true; cloudAt = now;
+    cloudDoc.set({ save: js, at: now }).then(() => { cloudLast = js; }).catch(() => {}).finally(() => { cloudBusy = false; });
+  };
+  const save = force => {
+    try { localStorage.setItem('nikita-clicker', JSON.stringify(S)); localOk = true; } catch (e) { localOk = false; }
+    cloudSave(force === true);
+  };
   // recompute level silently (level table changed between versions)
   S.lvl = 0; while (S.lvl + 1 < LEVELS.length && S.earned >= LEVELS[S.lvl + 1].at) S.lvl++;
   const unlocked = c => c === 'n' || (SPECIAL[c] && S.earned >= SPECIAL[c].at);
@@ -1231,7 +1249,7 @@ button{touch-action:manipulation}
   addEventListener('resize', sizeDig);
   const FLOOR = 390, CEIL = 110;
   const ARTS = [['🪙', 'Старая монета'], ['🗝️', 'Ржавый ключ'], ['🧭', 'Компас'], ['⌚', 'Карманные часы'], ['📻', 'Радиоприёмник'], ['🪖', 'Старая каска'], ['🗺️', 'Карта 1960 года'], ['💡', 'Лампочка Ильича'], ['📟', 'Пейджер'], ['🎫', 'Билет на трамвай']];
-  const dig = { x: 120, y: FLOOR, vy: 0, dir: 1, state: 'walk', lamp: true, bat: 100, maxX: 120, cam: 0, feats: [], genX: 460, lastCp: 120, cp: 120, ph: 0, left: false, right: false, fallT: 0, txt: [], t: 0, dogX: 60, beep: 0 };
+  const dig = { ev: null, evAt: 1800 + Math.random() * 2400, x: 120, y: FLOOR, vy: 0, dir: 1, state: 'walk', lamp: true, bat: 100, maxX: 120, cam: 0, feats: [], genX: 460, lastCp: 120, cp: 120, ph: 0, left: false, right: false, fallT: 0, txt: [], t: 0, dogX: 60, beep: 0 };
   const genDig = upto => {
     while (dig.genX < upto) {
       const x = dig.genX, r = Math.random();
@@ -1263,8 +1281,8 @@ button{touch-action:manipulation}
   };
   const digJump = () => { if (dig.state === 'walk') { dig.vy = -560; dig.state = 'air'; } };
   const digLamp = () => { if (dig.lamp || dig.bat > 5) dig.lamp = !dig.lamp; digUI(); };
-  pressHold($('dl'), () => { dig.left = true; }, () => { dig.left = false; });
-  pressHold($('dr'), () => { dig.right = true; }, () => { dig.right = false; });
+  pressHold($('dl'), () => { dig.left = true; digCrawl('L'); }, () => { dig.left = false; });
+  pressHold($('dr'), () => { dig.right = true; digCrawl('R'); }, () => { dig.right = false; });
   pressHold($('dj'), digJump);
   $('dlamp').addEventListener('click', digLamp);
   $('dtake').addEventListener('click', digTake);
@@ -1272,7 +1290,7 @@ button{touch-action:manipulation}
   addEventListener('keydown', e => {
     if (S.char !== 'd') return;
     const k = DKEYS[e.code];
-    if (k) { e.preventDefault(); dig[k] = true; $(k === 'left' ? 'dl' : 'dr').classList.add('held'); return; }
+    if (k) { e.preventDefault(); dig[k] = true; $(k === 'left' ? 'dl' : 'dr').classList.add('held'); if (!e.repeat) digCrawl(k === 'left' ? 'L' : 'R'); return; }
     if (e.repeat) return;
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); digJump(); }
     else if (e.code === 'KeyF') digLamp();
@@ -1280,15 +1298,79 @@ button{touch-action:manipulation}
   });
   addEventListener('keyup', e => { const k = DKEYS[e.code]; if (k) { dig[k] = false; $(k === 'left' ? 'dl' : 'dr').classList.remove('held'); } });
 
+  // --- event: rescuers weld the entrance shut, the only way out is the "pipe of death" (50% it gets blocked)
+  const startSeal = () => {
+    const d = dig, weldX = d.x - 150, pipeX = d.x + 520, len = 640;
+    d.ev = { weldX, pipeX, len, closes: Math.random() < .5, closeAt: .4 + Math.random() * .35, t: 0, last: null, stuckT: 0, blockX: 0 };
+    d.feats = d.feats.filter(f => f.x < pipeX - 80 && !(f.t === 'hole' && f.x + f.w > weldX - 20 && f.x < weldX + 140));
+    d.genX = 1e12;
+    if (d.cp < weldX + 40) d.cp = weldX + 40;
+    toast('🚒', 'МЧС заварили выход!', 'Выбирайся через трубу смерти');
+  };
+  const newBunker = () => {
+    const d = dig;
+    Object.assign(d, { feats: [], genX: 460, lastCp: 120, cp: 120, x: 120, y: FLOOR, vy: 0, maxX: 120, cam: 0, state: 'walk', ev: null, evAt: 1800 + Math.random() * 2400, bat: maxBat() });
+    S.digLvl = (S.digLvl || 1) + 1; genDig(1600); save(true);
+  };
+  const escapePipe = () => {
+    const bonus = perClick() * 2000 * injMult('d'); gain(bonus);
+    toast('🎉', 'Выбрался по трубе смерти!', '+' + fmt(bonus) + ' · новый бункер');
+    newBunker();
+  };
+  const rescue = () => {
+    const fine = Math.floor(S.score * .1); S.score -= fine;
+    newBunker();
+    injure('d', .55);
+    dText('🚒 МЧС вытащили · −' + fmt(fine), '#FF5D73');
+  };
+  const digCrawl = h => {
+    const d = dig, e = d.ev; if (d.state !== 'crawl' || !e) return;
+    if (e.last === h) { dText('По очереди!', '#A9A2D6'); return; }
+    e.last = h; d.x += 22 * legMult('d') * (injIs('d', 'arm', 'sprain') ? .6 : 1); d.ph += 1.3;
+    const p = (d.x - e.pipeX) / e.len;
+    if (e.closes && p >= e.closeAt) { d.state = 'stuck'; e.stuckT = 0; e.blockX = d.x + 70; toast('🚧', 'Труба закрылась!', 'Застрял — ждём спасателей'); }
+    else if (p >= 1) escapePipe();
+  };
+  const crawlStep = dt => {
+    const d = dig, e = d.ev;
+    if (d.state === 'stuck' && (e.stuckT += dt) > 3.4) rescue();
+  };
+  const drawPipe = (g, d) => {
+    const e = d.ev; if (!e) return;
+    // welded door behind
+    const wx = e.weldX - d.cam;
+    g.fillStyle = '#55537A'; g.fillRect(wx - 34, CEIL, 34, FLOOR - CEIL);
+    g.fillStyle = '#7A78A0'; for (let y = CEIL + 20; y < FLOOR; y += 40) { g.beginPath(); g.arc(wx - 26, y, 3, 0, 7); g.fill(); g.beginPath(); g.arc(wx - 8, y, 3, 0, 7); g.fill(); }
+    g.strokeStyle = e.t < 4 ? `rgba(255,${150 + Math.random() * 100},60,1)` : '#C96A1E'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(wx - 2, CEIL); g.lineTo(wx - 2, FLOOR); g.stroke();
+    g.save(); g.translate(wx - 17, 250); g.rotate(-Math.PI / 2); g.font = '900 16px Unbounded, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#FF5D73'; g.fillText('ЗАВАРЕНО', 0, 6); g.restore();
+    // wall with the pipe going through it
+    const px = e.pipeX - d.cam, ex = px + e.len;
+    g.fillStyle = '#2E2656'; g.fillRect(px + 20, CEIL, e.len + 900, FLOOR - CEIL + 300);
+    g.fillStyle = '#3A3068'; for (let y = CEIL; y < 318; y += 26) for (let x = px + 20 + ((y / 26) & 1) * 30; x < ex + 900; x += 60) g.fillRect(x, y + 2, 54, 21);
+    g.fillStyle = '#16122C'; g.fillRect(px + 20, 318, e.len, 74);                      // pipe interior (cutaway)
+    g.fillStyle = '#8A86AE'; g.fillRect(px + 20, 312, e.len, 8); g.fillRect(px + 20, 390, e.len, 8);
+    g.fillStyle = '#6B668F'; for (let x = px + 80; x < ex; x += 90) { g.fillRect(x, 308, 10, 16); g.fillRect(x, 386, 10, 16); }
+    g.strokeStyle = '#8A86AE'; g.lineWidth = 6; g.beginPath(); g.ellipse(px + 20, 355, 14, 44, 0, 0, 7); g.stroke();
+    g.fillStyle = '#FFC93C'; g.font = '900 15px Unbounded, sans-serif'; g.textAlign = 'center'; g.fillText('ТРУБА СМЕРТИ', px + 20, 292);
+    g.fillStyle = '#BFE8FF'; g.fillRect(ex, 318, 40, 74); g.fillStyle = '#5BE3B5'; g.fillText('ВЫХОД', ex + 20, 292);
+    if (d.state === 'stuck') {
+      const bx = e.blockX - d.cam; g.fillStyle = '#6B668F'; g.fillRect(bx, 318, 26, 74);
+      g.strokeStyle = '#120E33'; g.lineWidth = 4; g.beginPath(); g.moveTo(bx, 318); g.lineTo(bx + 26, 392); g.moveTo(bx + 26, 318); g.lineTo(bx, 392); g.stroke();
+    }
+  };
+
   const digStep = dt => {
-    const d = dig; d.t += dt;
+    const d = dig; d.t += dt; if (d.ev) d.ev.t += dt;
     if (d.state === 'fallen') { if ((d.fallT -= dt) <= 0) { d.x = d.cp; d.y = FLOOR; d.vy = 0; d.state = 'walk'; } }
+    else if (d.state === 'crawl' || d.state === 'stuck') crawlStep(dt);
     else {
       const mv = (d.right ? 1 : 0) - (d.left ? 1 : 0);
       if (mv) d.dir = mv;
       const slow = d.state === 'walk' && puddleAt(d.x) && !own('boots') ? .45 : 1;
-      d.x = Math.max(40, d.x + mv * 160 * slow * legMult('d') * dt);
+      d.x = Math.max(d.ev ? d.ev.weldX + 30 : 40, d.x + mv * 160 * slow * legMult('d') * dt);
       if (mv && d.state === 'walk') d.ph += dt * 11 * slow;
+      if (d.ev && d.state === 'walk' && d.x >= d.ev.pipeX) { d.state = 'crawl'; d.x = d.ev.pipeX + 10; d.dir = 1; d.ev.last = null; dText('Ползи: жми ◀ ▶ по очереди', '#FFC93C'); }
       if (d.state === 'walk' && holeAt(d.x)) { d.state = 'drop'; d.vy = 0; }
       if (d.state === 'air' || d.state === 'drop') {
         d.vy += 1500 * dt; d.y += d.vy * dt;
@@ -1298,6 +1380,7 @@ button{touch-action:manipulation}
     }
     if (d.lamp) { d.bat -= 7 * dt * (1 - .12 * Math.min(4, own('battery'))); if (d.bat <= 0) { d.bat = 0; d.lamp = false; dText('Фонарь сел!', '#FF5D73'); } }
     else d.bat = Math.min(maxBat(), d.bat + 5 * dt);
+    if (!d.ev && d.maxX > d.evAt && d.state === 'walk') startSeal();
     if (d.x > d.maxX) { gain(perClick() * .15 * (d.x - d.maxX) * injMult('d')); d.maxX = d.x; }
     for (const f of d.feats) if (f.t === 'cp' && !f.lit && d.x > f.x) { f.lit = true; d.cp = f.x; dText('🕯️ Точка сохранения', '#5BE3B5'); }
     if (own('dog')) {
@@ -1347,34 +1430,48 @@ button{touch-action:manipulation}
       else if (f.t === 'cp') { g.fillStyle = '#4A3F86'; g.fillRect(x - 4, 168, 8, 30); g.fillStyle = f.lit ? '#FFD36B' : '#3A3360'; g.beginPath(); g.arc(x, 210, 12, 0, 7); g.fill(); }
       else if (f.t === 'rat') { const sd = Math.sign(f.vx || 1); g.fillStyle = '#7A7598'; g.beginPath(); g.ellipse(x, FLOOR - 7, 14, 7, 0, 0, 7); g.fill(); g.beginPath(); g.arc(x + sd * 13, FLOOR - 10, 5, 0, 7); g.fill(); g.strokeStyle = '#7A7598'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - sd * 14, FLOOR - 6); g.lineTo(x - sd * 32, FLOOR - 2); g.stroke(); }
     }
-    if (own('dog')) drawDog(g, d.dogX - d.cam, FLOOR, d.t, d.dir);
-    const px = d.x - d.cam, moving = d.left || d.right;
-    drawGuy(g, { x: px, y: d.y, ph: d.ph, dir: d.dir, pose: d.state === 'walk' ? (moving ? 'run' : 'stand') : d.state === 'air' ? 'air' : 'fall', t: d.t,
+    drawPipe(g, d);
+    if (own('dog') && !d.ev) drawDog(g, d.dogX - d.cam, FLOOR, d.t, d.dir);
+    const px = d.x - d.cam, moving = d.left || d.right, crawling = d.state === 'crawl' || d.state === 'stuck';
+    if (crawling) { g.save(); g.translate(px - 52, FLOOR - 24); g.rotate(Math.PI / 2); }
+    drawGuy(g, { x: crawling ? 0 : px, y: crawling ? 0 : d.y, ph: d.ph, dir: crawling ? 1 : d.dir, pose: crawling ? 'run' : d.state === 'walk' ? (moving ? 'run' : 'stand') : d.state === 'air' ? 'air' : 'fall', t: d.t,
       fit: { inj: (injOf('d') || {}).k, hood: '#E8812A', pants: '#3A3360', hat: own('helmet2') ? 'helmet' : 'bandana', pack: true, packC: '#6B668F', boots: own('boots') > 0, overalls: '#C96A1E' } });
+    if (crawling) g.restore();
     // darkness with light cut out
     dk.setTransform(1, 0, 0, 1, 0, 0); dk.globalCompositeOperation = 'source-over'; dk.clearRect(0, 0, dark.width, dark.height);
     dk.fillStyle = 'rgba(3,2,10,.95)'; dk.fillRect(0, 0, dark.width, dark.height);
     dk.setTransform(k, 0, 0, k, DV.x * dpr, DV.y * dpr); dk.globalCompositeOperation = 'destination-out';
     const glow = (x, y, r, a) => { const gr = dk.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); dk.fillStyle = gr; dk.beginPath(); dk.arc(x, y, r, 0, 7); dk.fill(); };
-    const hx = px + d.dir * 16, hy = d.y - 106;
+    const hx = crawling ? px + 58 : px + d.dir * 16, hy = crawling ? FLOOR - 26 : d.y - 106;
     glow(px, d.y - 60, 60, .55);
     if (d.lamp) {
-      const len = lampLen() * (injIs('d', 'conc') ? .7 + .3 * Math.random() : 1), sp = .42, c = d.dir > 0 ? .25 : Math.PI - .25;   // concussion: everything flickers
+      const len = lampLen() * (injIs('d', 'conc') ? .7 + .3 * Math.random() : 1), sp = .42, c = crawling ? 0 : d.dir > 0 ? .25 : Math.PI - .25;   // concussion: everything flickers
       dk.save(); dk.beginPath(); dk.moveTo(hx, hy); dk.arc(hx, hy, len, c - sp, c + sp); dk.closePath(); dk.clip();
       const gr = dk.createRadialGradient(hx, hy, 0, hx, hy, len); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.7, 'rgba(0,0,0,.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
       dk.fillStyle = gr; dk.fillRect(hx - len, hy - len, len * 2, len * 2); dk.restore();
     }
     if (own('helmet2')) glow(hx, hy + 40, 130, .8);
     for (const f of d.feats) if (f.t === 'cp' && f.lit) glow(f.x - d.cam, 215, 115, .9);
+    if (d.ev) {
+      const e = d.ev;
+      if (e.t < 4) glow(e.weldX - d.cam - 4, 260, 90, .9);
+      glow(e.pipeX + e.len - d.cam + 30, 355, 150, 1);
+      if (Math.sin(d.t * 9) > 0) glow(e.weldX - d.cam - 10, 140, 60, .7);
+    }
     g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(dark, 0, 0);
     g.setTransform(k, 0, 0, k, DV.x * dpr, DV.y * dpr);
-    if (d.lamp) { g.globalCompositeOperation = 'lighter'; const len = lampLen(), c = d.dir > 0 ? .25 : Math.PI - .25; g.fillStyle = 'rgba(255,200,120,.12)'; g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, len, c - .42, c + .42); g.closePath(); g.fill(); g.globalCompositeOperation = 'source-over'; }
+    if (d.lamp) { g.globalCompositeOperation = 'lighter'; const len = lampLen(), c = crawling ? 0 : d.dir > 0 ? .25 : Math.PI - .25; g.fillStyle = 'rgba(255,200,120,.12)'; g.beginPath(); g.moveTo(hx, hy); g.arc(hx, hy, len, c - .42, c + .42); g.closePath(); g.fill(); g.globalCompositeOperation = 'source-over'; }
+    if (d.ev) {
+      const e = d.ev, wx = e.weldX - d.cam;
+      if (Math.sin(d.t * 9) > 0) { g.fillStyle = 'rgba(255,60,90,.8)'; g.fillRect(wx - 30, 128, 12, 8); } else { g.fillStyle = 'rgba(90,140,255,.8)'; g.fillRect(wx - 16, 128, 12, 8); }
+      if (e.t < 4) { g.fillStyle = '#FFE38A'; for (let i = 0; i < 8; i++) g.fillRect(wx - 2 + (Math.random() - .5) * 30, 200 + Math.random() * 120, 3, 3); }
+    }
     if (own('map')) { g.setLineDash([8, 6]); g.strokeStyle = 'rgba(255,201,60,.65)'; g.lineWidth = 2; for (const f of d.feats) if (f.t === 'hole') g.strokeRect(f.x - d.cam, FLOOR, f.w, 60); g.setLineDash([]); }
     if (d.beep > 0) { const ph = (d.t * (1 + d.beep * 4)) % 1; g.strokeStyle = `rgba(91,227,181,${(1 - ph) * .8})`; g.lineWidth = 3; g.beginPath(); g.arc(px, d.y - 60, 30 + ph * 90, 0, 7); g.stroke(); }
     drawTexts(g, d.txt, dt);
   };
   const digFrame = dt => { if (S.char !== 'd') return; if (!dgc.width) sizeDig(); digStep(dt); drawDig(dt); };
-  const DIG_ST = { walk: ['Исследует бункер', 'st-balance'], air: ['Прыжок!', 'st-scrape'], drop: ['Падает в яму!', 'st-crash'], fallen: ['Плюх! Назад к фонарю', 'st-crash'] };
+  const DIG_ST = { crawl: ['Ползёт по трубе смерти', 'st-scrape'], stuck: ['Застрял! Ждём МЧС…', 'st-crash'], walk: ['Исследует бункер', 'st-balance'], air: ['Прыжок!', 'st-scrape'], drop: ['Падает в яму!', 'st-crash'], fallen: ['Плюх! Назад к фонарю', 'st-crash'] };
   function digUI() {
     if (S.char !== 'd') return;
     const st = DIG_ST[dig.state], el = $('dgstate');
@@ -1445,12 +1542,38 @@ button{touch-action:manipulation}
     requestAnimationFrame(loop);
   };
   setInterval(save, 5000);
-  addEventListener('pagehide', save);
+  addEventListener('pagehide', () => save(true));
+  addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(true); });
+  (async () => {
+    try {
+      const use = window.claude && window.claude.use;
+      if (!use) { setSaveStatus(); return; }
+      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+      if (!db || !user) { setSaveStatus(); return; }
+      const id = await user.id(); if (!id) { setSaveStatus(); return; }
+      const ref = db.doc('data/users/' + id + '/clicker');
+      const snap = await ref.get();
+      cloudDoc = ref;
+      if (snap.exists) {
+        const body = snap.data(), cs = body && typeof body.save === 'string' ? JSON.parse(body.save) : null;
+        if (cs && (cs.earned || 0) > (S.earned || 0)) {
+          S = Object.assign(fresh(), cs);
+          S.lvl = 0; while (S.lvl + 1 < LEVELS.length && S.earned >= LEVELS[S.lvl + 1].at) S.lvl++;
+          if (!unlocked(S.char)) S.char = 'n';
+          applyGear(); renderShop(); update(); sizeRide(); sizeRoof(); sizeDig();
+          toast('☁️', 'Прогресс загружен', 'Из облачного сохранения');
+        }
+      }
+      cloudLast = ''; cloudSave(true);
+    } catch (e) { /* cloud unavailable: browser storage still works */ }
+    setSaveStatus();
+  })();
+  setSaveStatus();
 
   applyGear(); renderShop(); sizeRide(); sizeRoof(); sizeDig(); requestAnimationFrame(loop);
 
   // test hook
-  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride, roof, dig, jump: doJump, injure };
+  window.__nk = { give: n => { gain(n); applyGear(); update(); }, buyAll: () => { ALL.forEach(u => S.own[u.id] = Math.max(own(u.id), u.id === 'clone' ? 8 : 1)); applyGear(); renderShop(); }, setChar, ride, roof, dig, jump: doJump, injure, seal: () => startSeal() };
 })();
 </script>
 </body>
