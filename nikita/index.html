@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Крутой Никита</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: kinetic poster — giant stacked name, marquee bands, then a stage of stats, powers and a timeline, all on one deep-indigo field */
+:root{
+  --ink:#120E33;        /* field */
+  --ink-2:#1D1850;      /* raised field */
+  --paper:#F4F0FF;      /* text */
+  --muted:#A9A2D6;      /* secondary text */
+  --sun:#FFC93C;        /* primary accent */
+  --coral:#FF5D73;      /* secondary accent */
+  --line:rgba(244,240,255,.14);
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--paper);font-family:var(--f-body);font-size:16px;line-height:1.6;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ink)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+
+/* grain + glow */
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+main{position:relative;z-index:1}
+
+/* top bar */
+.bar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:20px;font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bar b{color:var(--sun);font-weight:500}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--coral);margin-right:8px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.5);opacity:.4}}
+
+/* hero */
+.hero{position:relative;padding-block:4vh 48px}
+.eyebrow{font-family:var(--f-mono);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--sun)}
+.name{font-family:var(--f-display);font-weight:900;line-height:.82;letter-spacing:-.04em;font-size:clamp(64px,19vw,250px);margin:12px 0 0;display:flex;flex-wrap:wrap;user-select:none}
+.name span{display:inline-block;animation:drop .9s cubic-bezier(.2,1.4,.4,1) both;animation-delay:calc(var(--i)*70ms + 150ms);transition:transform .35s cubic-bezier(.2,1.6,.4,1),color .2s}
+.name span:hover{transform:translateY(-.08em) rotate(-6deg);color:var(--sun)}
+@keyframes drop{from{transform:translateY(-120%) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+.name .outline{color:transparent;-webkit-text-stroke:2px var(--paper)}
+.name .outline:hover{color:var(--coral);-webkit-text-stroke-color:var(--coral)}
+.sub{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px;margin-top:28px}
+.sub p{max-width:42ch;margin:0;font-size:clamp(17px,2vw,21px);color:var(--muted);animation:rise .8s ease both .9s}
+.sub p strong{color:var(--paper)}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+
+/* rotating badge */
+.badge{position:relative;width:150px;height:150px;flex:none;animation:rise .8s ease both 1.1s}
+.badge svg{width:100%;height:100%;animation:spin 12s linear infinite}
+.badge text{font-family:var(--f-display);font-size:13.5px;font-weight:700;letter-spacing:.18em;fill:var(--paper)}
+.badge i{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-family:var(--f-display);font-weight:900;font-size:40px;color:var(--ink)}
+.badge i::before{content:"";position:absolute;inset:38px;border-radius:50%;background:var(--sun);z-index:-1}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* marquee */
+.marquee{overflow:hidden;border-block:1px solid var(--line);background:var(--sun);color:var(--ink);transform:rotate(-2deg);margin:24px -20px;position:relative;z-index:2}
+.marquee.alt{background:var(--coral);color:var(--paper);transform:rotate(1.5deg);margin-top:-14px;z-index:1}
+.track{display:flex;width:max-content;animation:slide 22s linear infinite}
+.marquee.alt .track{animation-direction:reverse;animation-duration:28s}
+.track span{font-family:var(--f-display);font-weight:900;font-size:clamp(22px,3.4vw,40px);padding:14px 0;white-space:nowrap;text-transform:uppercase}
+.track span::after{content:"✦";margin:0 .7em}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* sections */
+section{padding-block:96px 24px}
+.h2{font-family:var(--f-display);font-weight:700;font-size:clamp(32px,5.5vw,64px);line-height:1;letter-spacing:-.03em;margin:0 0 12px;text-wrap:balance}
+.h2 em{font-style:normal;color:var(--sun)}
+.lead{color:var(--muted);max-width:60ch;margin:0 0 40px}
+.reveal{transition:transform .9s cubic-bezier(.2,.9,.3,1)}
+.reveal.pending{transform:translateY(40px)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px;background:var(--line);border:1px solid var(--line)}
+.stat{background:var(--ink);padding:28px 24px;min-width:0}
+.stat .k{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--f-display);font-weight:900;font-size:clamp(40px,5vw,60px);line-height:1.1;font-variant-numeric:tabular-nums;margin:8px 0 14px}
+.stat .v small{font-size:.4em;color:var(--sun);margin-left:4px}
+.meter{height:8px;background:var(--ink-2);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,var(--sun),var(--coral));border-radius:inherit;transform-origin:left;animation:fill 1.6s cubic-bezier(.2,.9,.3,1) both .4s}
+.meter.over i{width:100%;background:repeating-linear-gradient(-45deg,var(--coral) 0 10px,var(--sun) 10px 20px);background-size:28px 28px;animation:fill 1.6s cubic-bezier(.2,.9,.3,1) both .4s,stripes .6s linear infinite}
+@keyframes fill{from{transform:scaleX(0)}}
+@keyframes stripes{to{background-position:28px 0}}
+.stat .note{font-size:13px;color:var(--muted);margin-top:10px}
+
+/* powers */
+.powers{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.card{position:relative;background:var(--ink-2);border-radius:22px;padding:28px;min-height:230px;display:flex;flex-direction:column;justify-content:space-between;gap:28px;transform-style:preserve-3d;transition:transform .25s ease,background .3s;overflow:hidden;min-width:0}
+.card::after{content:"";position:absolute;inset:0;background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),rgba(255,201,60,.18),transparent 60%);opacity:0;transition:opacity .3s;pointer-events:none}
+.card:hover::after{opacity:1}
+.glyph{width:64px;height:64px}
+.glyph *{fill:none;stroke:var(--sun);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.card:hover .glyph{animation:wob .6s ease}
+@keyframes wob{30%{transform:rotate(-12deg) scale(1.1)}60%{transform:rotate(8deg)}}
+.card h3{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0 0 6px;line-height:1.15}
+.card p{margin:0;color:var(--muted);font-size:15px}
+.lvl{position:absolute;top:24px;right:24px;font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;color:var(--coral);border:1px solid currentColor;border-radius:99px;padding:4px 10px}
+
+/* timeline */
+.day{list-style:none;margin:0;padding:0;border-left:2px dashed var(--line);display:grid;gap:8px}
+.day li{position:relative;display:grid;grid-template-columns:90px 1fr;gap:20px;padding:18px 0 18px 28px;align-items:baseline}
+.day li::before{content:"";position:absolute;left:-8px;top:27px;width:14px;height:14px;border-radius:50%;background:var(--ink);border:3px solid var(--sun);transition:background .3s,transform .3s}
+.day li:hover::before{background:var(--coral);border-color:var(--coral);transform:scale(1.4)}
+.day time{font-family:var(--f-mono);color:var(--sun);font-size:15px;font-variant-numeric:tabular-nums}
+.day b{font-family:var(--f-display);font-weight:700;font-size:19px;display:block;line-height:1.2}
+.day span{color:var(--muted);font-size:15px}
+.day li>div{min-width:0}
+
+/* button stage */
+.stage{position:relative;text-align:center;background:var(--ink-2);border-radius:32px;padding-block:72px;padding-inline:24px;overflow:hidden}
+.stage .h2{margin-bottom:8px}
+.count{font-family:var(--f-display);font-weight:900;font-size:clamp(56px,10vw,120px);line-height:1;color:var(--sun);font-variant-numeric:tabular-nums;margin:20px 0 6px;display:inline-block}
+.count.bump{animation:bump .3s ease}
+@keyframes bump{40%{transform:scale(1.15) rotate(-3deg)}}
+.rank{font-family:var(--f-mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);min-height:1.6em}
+.btn{margin-top:28px;font-family:var(--f-display);font-weight:900;font-size:20px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);background:var(--sun);border:0;border-radius:999px;padding:22px 44px;cursor:pointer;box-shadow:0 8px 0 #B8861A;transition:transform .08s,box-shadow .08s}
+.btn:hover{background:#FFD45F}
+.btn:active{transform:translateY(6px);box-shadow:0 2px 0 #B8861A}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+footer{padding-block:64px 40px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* cursor blob (desktop only) */
+#blob{position:fixed;left:0;top:0;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:var(--coral);mix-blend-mode:screen;pointer-events:none;z-index:50;opacity:0;transition:width .25s,height .25s,margin .25s,opacity .3s}
+#blob.big{width:80px;height:80px;margin:-40px 0 0 -40px;background:var(--sun)}
+@media (hover:hover) and (pointer:fine){#blob.on{opacity:.85}}
+
+@media (max-width:560px){
+  .day li{grid-template-columns:1fr;gap:4px}
+  .badge{width:120px;height:120px}
+  .badge i::before{inset:30px}
+  .badge i{font-size:32px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .reveal.pending{transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg" aria-hidden="true"></canvas>
+<div id="blob" aria-hidden="true"></div>
+
+<main>
+  <div class="wrap">
+    <header class="bar">
+      <span><span class="dot"></span>В эфире: <b>Никита</b></span>
+      <span>Уровень крутости: превышен</span>
+    </header>
+
+    <div class="hero">
+      <div class="eyebrow">Официальный сайт самого крутого человека</div>
+      <h1 class="name" aria-label="Никита" id="name"></h1>
+      <div class="sub">
+        <p><strong>Никита</strong> — человек, после которого понедельник становится пятницей, а скучные планы превращаются в истории, которые потом пересказывают годами.</p>
+        <div class="badge" aria-hidden="true">
+          <svg viewBox="0 0 150 150"><defs><path id="c" d="M75,75 m-58,0 a58,58 0 1,1 116,0 a58,58 0 1,1 -116,0"/></defs><text><textPath href="#c">КРУТОЙ · КРУТОЙ · КРУТОЙ · КРУТОЙ ·</textPath></text></svg>
+          <i>Н</i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="marquee" aria-hidden="true"><div class="track" id="m1"></div></div>
+  <div class="marquee alt" aria-hidden="true"><div class="track" id="m2"></div></div>
+
+  <div class="wrap">
+    <section id="stats" class="reveal">
+      <h2 class="h2">Характеристики <em>персонажа</em></h2>
+      <p class="lead">Замеры проведены независимой лабораторией друзей Никиты. Погрешность — только в большую сторону.</p>
+      <div class="stats">
+        <div class="stat"><div class="k">Крутость</div><div class="v" data-count="9001">0<small>ед.</small></div><div class="meter over"><i></i></div><div class="note">Шкала закончилась на 100%.</div></div>
+        <div class="stat"><div class="k">Харизма</div><div class="v" data-count="98">0<small>%</small></div><div class="meter"><i style="--w:98%"></i></div><div class="note">Оставшиеся 2% — скромность.</div></div>
+        <div class="stat"><div class="k">Спокойствие</div><div class="v" data-count="100">0<small>%</small></div><div class="meter"><i style="--w:100%"></i></div><div class="note">Не паникует даже при 1% заряда.</div></div>
+        <div class="stat"><div class="k">Чувство юмора</div><div class="v" data-count="420">0<small>шуток/день</small></div><div class="meter"><i style="--w:92%"></i></div><div class="note">Из них смешные — все.</div></div>
+      </div>
+    </section>
+
+    <section id="powers" class="reveal">
+      <h2 class="h2">Сверх&shy;способности</h2>
+      <p class="lead">Наведи на карточку. Каждая способность подтверждена минимум тремя свидетелями.</p>
+      <div class="powers">
+        <article class="card"><span class="lvl">LVL 99</span>
+          <svg class="glyph" viewBox="0 0 64 64"><path d="M36 4 14 36h16l-4 24 22-32H32z"/></svg>
+          <div><h3>Мгновенный вайб</h3><p>Заходит в комнату — и настроение у всех поднимается на два уровня.</p></div></article>
+        <article class="card"><span class="lvl">LVL 87</span>
+          <svg class="glyph" viewBox="0 0 64 64"><circle cx="32" cy="32" r="24"/><path d="M32 18v14l10 6"/></svg>
+          <div><h3>Всегда вовремя</h3><p>Опаздывает только тот, кто пришёл раньше Никиты.</p></div></article>
+        <article class="card"><span class="lvl">LVL 95</span>
+          <svg class="glyph" viewBox="0 0 64 64"><path d="M32 54S8 40 8 24a12 12 0 0 1 24-4 12 12 0 0 1 24 4c0 16-24 30-24 30z"/></svg>
+          <div><h3>Надёжный друг</h3><p>Поможет с переездом, ответит в три ночи и не расскажет секрет.</p></div></article>
+        <article class="card"><span class="lvl">LVL ∞</span>
+          <svg class="glyph" viewBox="0 0 64 64"><path d="M10 50 26 22l10 16 8-12 10 24z"/><circle cx="46" cy="14" r="5"/></svg>
+          <div><h3>Решает любые задачи</h3><p>Сначала говорит «ща сделаю», потом действительно делает.</p></div></article>
+      </div>
+    </section>
+
+    <section id="day" class="reveal">
+      <h2 class="h2">Один день <em>из жизни</em></h2>
+      <p class="lead">Обычный вторник. Для Никиты — повод сделать что-то легендарное.</p>
+      <ol class="day">
+        <li><time>07:00</time><div><b>Просыпается без будильника</b><span>Будильник просыпается от того, что Никита уже встал.</span></div></li>
+        <li><time>09:30</time><div><b>Первая победа дня</b><span>Закрывает задачу, которую остальные откладывали месяц.</span></div></li>
+        <li><time>13:00</time><div><b>Обед с командой</b><span>Находит место, о котором потом все рассказывают знакомым.</span></div></li>
+        <li><time>18:45</time><div><b>Тренировка</b><span>Штанга считает за честь быть поднятой.</span></div></li>
+        <li><time>23:00</time><div><b>Засыпает с чувством выполненного долга</b><span>Завтра будет ещё круче. Это не обсуждается.</span></div></li>
+      </ol>
+    </section>
+
+    <section id="button" class="reveal">
+      <div class="stage">
+        <canvas id="fx" aria-hidden="true"></canvas>
+        <h2 class="h2">Добавь Никите <em>крутости</em></h2>
+        <p class="lead" style="margin:0 auto">Каждое нажатие засчитывается. Технически предела нет.</p>
+        <div><span class="count" id="count" aria-live="polite">0</span></div>
+        <div class="rank" id="rank">Начни жать</div>
+        <button class="btn" id="boost" type="button">Сделать круче</button>
+      </div>
+    </section>
+
+    <footer>
+      <span>© 2026 Никита. Все крутости защищены.</span>
+      <span>Сделано с уважением</span>
+    </footer>
+  </div>
+</main>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Hero letters
+  const name = document.getElementById('name');
+  [...'НИКИТА'].forEach((ch, i) => {
+    const s = document.createElement('span');
+    s.textContent = ch; s.style.setProperty('--i', i); s.setAttribute('aria-hidden', 'true');
+    if (i === 2 || i === 5) s.className = 'outline';
+    name.appendChild(s);
+  });
+
+  // Marquees
+  const fill = (id, words) => {
+    const t = document.getElementById(id);
+    const html = words.map(w => `<span>${w}</span>`).join('');
+    t.innerHTML = html + html + html + html;
+  };
+  fill('m1', ['Никита крутой', 'Легенда района', 'Человек-праздник', 'Не повторять дома']);
+  fill('m2', ['Харизма 98%', 'Спокойствие 100%', 'Крутость 9001', 'Вайб на максимум']);
+
+  // Scroll reveal (content stays visible; only moves)
+  const reveals = document.querySelectorAll('.reveal');
+  const counted = new WeakSet();
+  const countUp = el => {
+    if (counted.has(el)) return; counted.add(el);
+    const target = +el.dataset.count, small = el.querySelector('small');
+    const t0 = performance.now(), dur = reduce ? 0 : 1600;
+    const step = now => {
+      const p = dur ? Math.min(1, (now - t0) / dur) : 1;
+      const v = Math.round(target * (1 - Math.pow(1 - p, 4)));
+      el.firstChild.nodeValue = v.toLocaleString('ru-RU');
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  if ('IntersectionObserver' in window && !reduce) {
+    const vh = innerHeight;
+    reveals.forEach(r => { if (r.getBoundingClientRect().top > vh) r.classList.add('pending'); });
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.remove('pending');
+        e.target.querySelectorAll('[data-count]').forEach(countUp);
+        io.unobserve(e.target);
+      }
+    }), { threshold: .15 });
+    reveals.forEach(r => io.observe(r));
+  } else {
+    document.querySelectorAll('[data-count]').forEach(countUp);
+  }
+  // fallback so numbers never stay at 0
+  setTimeout(() => document.querySelectorAll('[data-count]').forEach(countUp), 4000);
+
+  // Card tilt + glow
+  document.querySelectorAll('.card').forEach(c => {
+    c.addEventListener('pointermove', e => {
+      const r = c.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      c.style.setProperty('--mx', x * 100 + '%'); c.style.setProperty('--my', y * 100 + '%');
+      if (!reduce) c.style.transform = `perspective(800px) rotateX(${(.5 - y) * 10}deg) rotateY(${(x - .5) * 12}deg)`;
+    });
+    c.addEventListener('pointerleave', () => { c.style.transform = ''; });
+  });
+
+  // Cursor blob
+  const blob = document.getElementById('blob');
+  let bx = 0, by = 0, tx = 0, ty = 0;
+  addEventListener('pointermove', e => {
+    tx = e.clientX; ty = e.clientY; blob.classList.add('on');
+    blob.classList.toggle('big', !!e.target.closest('button, .card, .name span'));
+  });
+  document.addEventListener('pointerleave', () => blob.classList.remove('on'));
+
+  // Background: drifting glow orbs + parallax on name
+  const bg = document.getElementById('bg'), g = bg.getContext('2d');
+  let W, H, dpr;
+  const size = () => { dpr = Math.min(devicePixelRatio || 1, 2); W = bg.width = innerWidth * dpr; H = bg.height = innerHeight * dpr; };
+  size(); addEventListener('resize', size);
+  const orbs = [
+    { c: '255,93,115', r: .45, sx: .00011, sy: .00013, px: 0 },
+    { c: '255,201,60', r: .35, sx: .00009, sy: .00007, px: 2 },
+    { c: '110,90,255', r: .55, sx: .00006, sy: .0001, px: 4 }
+  ];
+  const draw = t => {
+    g.clearRect(0, 0, W, H);
+    orbs.forEach(o => {
+      const x = W * (.5 + .4 * Math.sin(t * o.sx + o.px)), y = H * (.5 + .4 * Math.cos(t * o.sy + o.px));
+      const R = Math.max(W, H) * o.r, gr = g.createRadialGradient(x, y, 0, x, y, R);
+      gr.addColorStop(0, `rgba(${o.c},.16)`); gr.addColorStop(1, `rgba(${o.c},0)`);
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    });
+    bx += (tx - bx) * .18; by += (ty - by) * .18;
+    blob.style.transform = `translate(${bx}px,${by}px)`;
+    name.style.transform = `translateX(${-scrollY * .25}px)`;
+    if (!reduce) requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+
+  // Boost button with particle burst
+  const fx = document.getElementById('fx'), f = fx.getContext('2d');
+  const sizeFx = () => { const r = fx.getBoundingClientRect(); fx.width = r.width * dpr; fx.height = r.height * dpr; };
+  sizeFx(); addEventListener('resize', sizeFx);
+  let parts = [], running = false, n = 0;
+  const words = ['КРУТО', '+1', 'ОГОНЬ', 'ЛЕГЕНДА', 'ВАУ', '+1'];
+  const ranks = [[0, 'Начни жать'], [1, 'Просто крутой'], [10, 'Очень крутой'], [25, 'Неприлично крутой'], [50, 'Легенда района'], [100, 'Легенда города'], [250, 'Крутость за пределами науки']];
+  const tick = () => {
+    f.clearRect(0, 0, fx.width, fx.height);
+    parts = parts.filter(p => p.life > 0);
+    parts.forEach(p => {
+      p.vy += .25 * dpr; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 1;
+      f.save(); f.globalAlpha = Math.min(1, p.life / 30); f.translate(p.x, p.y); f.rotate(p.rot);
+      if (p.word) { f.font = `900 ${18 * dpr}px Unbounded, sans-serif`; f.fillStyle = p.col; f.textAlign = 'center'; f.fillText(p.word, 0, 0); }
+      else { f.fillStyle = p.col; f.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); }
+      f.restore();
+    });
+    if (parts.length) requestAnimationFrame(tick); else running = false;
+  };
+  const btn = document.getElementById('boost'), count = document.getElementById('count'), rank = document.getElementById('rank');
+  btn.addEventListener('click', () => {
+    n++; count.textContent = n.toLocaleString('ru-RU');
+    count.classList.remove('bump'); void count.offsetWidth; count.classList.add('bump');
+    rank.textContent = ranks.filter(r => n >= r[0]).pop()[1];
+    if (reduce) return;
+    const fr = fx.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    const ox = (br.left + br.width / 2 - fr.left) * dpr, oy = (br.top - fr.top) * dpr;
+    const cols = ['#FFC93C', '#FF5D73', '#F4F0FF', '#8C7BFF'];
+    for (let i = 0; i < 36; i++) {
+      const a = -Math.PI / 2 + (Math.random() - .5) * 2.2, sp = (6 + Math.random() * 10) * dpr;
+      parts.push({ x: ox, y: oy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: Math.random() * 6, vr: (Math.random() - .5) * .4, s: (6 + Math.random() * 8) * dpr, col: cols[i % 4], life: 70 + Math.random() * 30 });
+    }
+    parts.push({ x: ox, y: oy, vx: (Math.random() - .5) * 4 * dpr, vy: -14 * dpr, rot: (Math.random() - .5) * .5, vr: 0, col: '#FFC93C', life: 60, word: words[Math.floor(Math.random() * words.length)] });
+    if (!running) { running = true; requestAnimationFrame(tick); }
+  });
+})();
+</script>
+</body>
+</html>
