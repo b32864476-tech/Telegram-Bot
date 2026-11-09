@@ -409,7 +409,7 @@ button{touch-action:manipulation}
           <button class="pedal gas" id="dr" type="button">▶</button>
         </div>
         <div class="pads2"><button class="pill" id="dlamp" type="button" aria-pressed="true">🔦 Фонарь: ВКЛ</button><button class="pill" id="dtake" type="button">✋ Взять</button></div>
-        <div class="hint">Иди с фонарём и ищи находки — они блестят в луче. Ямы видно только при свете, перепрыгивай их. Фонарь садится; выключи его, чтобы подзарядить. Иногда приезжают МЧС и заваривают выход — тогда ползи к трубе смерти, жми ◀ и ▶ по очереди. Труба может закрыться (50%), тогда спасатели вытащат, но заберут 10% крутости. Клавиши: ← → — идти, пробел — прыжок, F — фонарь, E — взять. Это мультяшная игра: в жизни в заброшенные тоннели не ходят.</div>
+        <div class="hint">Иди с фонарём и ищи находки — они блестят в луче. Ямы видно только при свете, перепрыгивай их. Фонарь садится; выключи его, чтобы подзарядить. Иногда приезжают МЧС и заваривают выход — тогда ползи к трубе смерти, жми ◀ и ▶ по очереди. Труба может закрыться (50%) — тогда Никита сгниёт в бункере и сгорит половина крутости. Клавиши: ← → — идти, пробел — прыжок, F — фонарь, E — взять. Это мультяшная игра: в жизни в заброшенные тоннели не ходят.</div>
       </div>
       <div class="evo">
         <div class="evo-head"><span id="evoLabel">Следующий аксессуар</span><b id="next">Тёмные очки</b></div>
@@ -1317,23 +1317,28 @@ button{touch-action:manipulation}
     toast('🎉', 'Выбрался по трубе смерти!', '+' + fmt(bonus) + ' · новый бункер');
     newBunker();
   };
-  const rescue = () => {
-    const fine = Math.floor(S.score * .1); S.score -= fine;
+  const rotInBunker = () => {
+    const fine = Math.floor(S.score * .5); S.score -= fine;
     newBunker();
-    injure('d', .55);
-    dText('🚒 МЧС вытащили · −' + fmt(fine), '#FF5D73');
+    toast('💀', 'Никита сгнил в бункере', '−' + fmt(fine) + ' крутости (50%)');
+    dText('Новый Никита, новый бункер', '#A9A2D6');
   };
   const digCrawl = h => {
     const d = dig, e = d.ev; if (d.state !== 'crawl' || !e) return;
     if (e.last === h) { dText('По очереди!', '#A9A2D6'); return; }
     e.last = h; d.x += 22 * legMult('d') * (injIs('d', 'arm', 'sprain') ? .6 : 1); d.ph += 1.3;
     const p = (d.x - e.pipeX) / e.len;
-    if (e.closes && p >= e.closeAt) { d.state = 'stuck'; e.stuckT = 0; e.blockX = d.x + 70; toast('🚧', 'Труба закрылась!', 'Застрял — ждём спасателей'); }
+    if (e.closes && p >= e.closeAt) { d.state = 'stuck'; e.stuckT = 0; e.blockX = d.x + 70; toast('🚧', 'Труба закрылась!', 'Выхода нет…'); }
     else if (p >= 1) escapePipe();
   };
   const crawlStep = dt => {
     const d = dig, e = d.ev;
-    if (d.state === 'stuck' && (e.stuckT += dt) > 3.4) rescue();
+    if (d.state === 'stuck') {
+      e.stuckT += dt;
+      d.bat = Math.max(0, d.bat - maxBat() * dt / 3);   // the lamp slowly dies
+      if (d.bat <= 0) d.lamp = false;
+      if (e.stuckT > 5) rotInBunker();
+    }
   };
   const drawPipe = (g, d) => {
     const e = d.ev; if (!e) return;
@@ -1469,9 +1474,19 @@ button{touch-action:manipulation}
     if (own('map')) { g.setLineDash([8, 6]); g.strokeStyle = 'rgba(255,201,60,.65)'; g.lineWidth = 2; for (const f of d.feats) if (f.t === 'hole') g.strokeRect(f.x - d.cam, FLOOR, f.w, 60); g.setLineDash([]); }
     if (d.beep > 0) { const ph = (d.t * (1 + d.beep * 4)) % 1; g.strokeStyle = `rgba(91,227,181,${(1 - ph) * .8})`; g.lineWidth = 3; g.beginPath(); g.arc(px, d.y - 60, 30 + ph * 90, 0, 7); g.stroke(); }
     drawTexts(g, d.txt, dt);
+    if (d.state === 'stuck' && d.ev) {
+      const a = Math.min(1, d.ev.stuckT / 3.5);
+      g.fillStyle = `rgba(0,0,0,${a})`; g.fillRect(-420, -300, 1800, 900);
+      if (a > .5) {
+        g.globalAlpha = Math.min(1, (a - .5) * 2.5); g.textAlign = 'center';
+        g.font = '900 38px Unbounded, sans-serif'; g.fillStyle = '#FF5D73'; g.fillText('💀 Никита сгнил в бункере', 480, 230);
+        g.font = '700 20px Manrope, sans-serif'; g.fillStyle = '#F4F0FF'; g.fillText('Труба закрылась. Минус 50% крутости.', 480, 275);
+        g.globalAlpha = 1;
+      }
+    }
   };
   const digFrame = dt => { if (S.char !== 'd') return; if (!dgc.width) sizeDig(); digStep(dt); drawDig(dt); };
-  const DIG_ST = { crawl: ['Ползёт по трубе смерти', 'st-scrape'], stuck: ['Застрял! Ждём МЧС…', 'st-crash'], walk: ['Исследует бункер', 'st-balance'], air: ['Прыжок!', 'st-scrape'], drop: ['Падает в яму!', 'st-crash'], fallen: ['Плюх! Назад к фонарю', 'st-crash'] };
+  const DIG_ST = { crawl: ['Ползёт по трубе смерти', 'st-scrape'], stuck: ['Труба закрылась… выхода нет', 'st-crash'], walk: ['Исследует бункер', 'st-balance'], air: ['Прыжок!', 'st-scrape'], drop: ['Падает в яму!', 'st-crash'], fallen: ['Плюх! Назад к фонарю', 'st-crash'] };
   function digUI() {
     if (S.char !== 'd') return;
     const st = DIG_ST[dig.state], el = $('dgstate');
