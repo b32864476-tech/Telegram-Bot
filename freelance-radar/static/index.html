@@ -36,6 +36,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { background: var(--ink); }
 body {
   margin: 0; background: var(--ink); color: var(--paper);
@@ -266,6 +267,55 @@ h1 em { font-style: normal; font-weight: 500; background: linear-gradient(100deg
 .toast { position: fixed; z-index: 100; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); translate: -50% 20px; opacity: 0; padding: 12px 20px; border-radius: 999px; font-size: 13.5px; transition: all .5s var(--ease); pointer-events: none; max-width: calc(100vw - 32px); }
 .toast.show { translate: -50% 0; opacity: 1; }
 
+/* ---------- chat ---------- */
+.icon-btn { position: relative; width: 44px; height: 44px; padding: 0; justify-content: center; }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn .badge, .tabs .badge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; border-radius: 999px; background: var(--paper); color: var(--ink); font: 600 10.5px/18px var(--f-mono); padding: 0 5px; box-shadow: 0 0 0 3px var(--ink); }
+.icon-btn .badge:empty, .tabs .badge:empty { display: none; }
+.icon-btn.ring svg { animation: ring 1s var(--ease) 2; transform-origin: 50% 10%; }
+@keyframes ring { 20% { rotate: 14deg; } 40% { rotate: -12deg; } 60% { rotate: 8deg; } 80% { rotate: -4deg; } }
+.tabs { display: inline-flex; padding: 4px; border-radius: 999px; background: rgba(0,0,0,.35); border: 1px solid var(--edge); align-self: flex-start; flex: none; }
+.tabs button { position: relative; border: 0; background: none; padding: 8px 18px; border-radius: 999px; cursor: pointer; color: var(--mist); font-size: 13.5px; transition: background .35s var(--ease), color .35s; }
+.tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); }
+.sheet.chatting { height: min(84vh, 900px); }
+.chatpane { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: 1; }
+.chat-status { font: 11.5px/1.4 var(--f-mono); color: var(--mist); letter-spacing: .03em; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.msgs { flex: 1; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 4px 6px 0; overscroll-behavior: contain; }
+.msg { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: 14.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; animation: pop .45s var(--ease) both; }
+.msg time { display: block; font: 10.5px var(--f-mono); opacity: .55; margin-top: 4px; }
+.msg.me { align-self: flex-end; background: var(--paper); color: var(--ink); border-bottom-right-radius: 6px; }
+.msg.them { align-self: flex-start; background: rgba(255,255,255,.08); border: 1px solid var(--edge); border-bottom-left-radius: 6px; }
+.msg.bid::before { content: "Отклик под заказом"; display: block; font: 10.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; opacity: .55; margin-bottom: 4px; }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+.chat-empty { margin: auto; text-align: center; color: var(--mist); font-size: 13.5px; max-width: 40ch; padding: 20px 0; }
+.chat-empty b { display: block; color: var(--paper); font: 300 18px/1.3 var(--f-display); margin-bottom: 6px; }
+.notice { padding: 14px 16px; border-radius: var(--r-md); border: 1px dashed var(--edge-hi); color: var(--mist); font-size: 13.5px; line-height: 1.5; }
+.notice b { color: var(--paper); font-weight: 500; }
+.notice .btn { margin-top: 10px; }
+.composer { display: grid; gap: 8px; flex: none; }
+.bidrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--mist); }
+.bidrow input { width: 110px; height: 40px; border-radius: 999px; border: 1px solid var(--edge); background: rgba(0,0,0,.35); padding: 0 14px; outline: none; font: 13px var(--f-mono); color: var(--paper); }
+.bidrow input:focus, .composer textarea:focus { border-color: var(--edge-hi); }
+.bidrow small { flex-basis: 100%; color: var(--smoke); font-size: 12px; }
+.sendrow { display: flex; gap: 8px; align-items: flex-end; }
+.composer textarea { flex: 1; min-width: 0; resize: none; min-height: 48px; max-height: 160px; border-radius: 24px; border: 1px solid var(--edge); background: rgba(0,0,0,.35); padding: 13px 18px; outline: none; font: 14.5px/1.4 var(--f-body); color: var(--paper); }
+.send { width: 48px; height: 48px; border-radius: 50%; padding: 0; justify-content: center; flex: none; }
+.send svg { width: 18px; height: 18px; }
+.send[disabled] { opacity: .5; pointer-events: none; }
+.inbox-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 14px 16px; border-radius: var(--r-md); background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); cursor: pointer; text-align: left; width: 100%; transition: border-color .3s; }
+.inbox-item:hover { border-color: var(--edge-hi); }
+.inbox-item b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-item span { grid-column: 1 / -1; color: var(--mist); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-item em { font: normal 11px var(--f-mono); color: var(--smoke); }
+.inbox-item.unread b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--paper); margin-right: 8px; vertical-align: 1px; box-shadow: 0 0 10px rgba(255,255,255,.6); }
+.field { display: grid; gap: 6px; }
+.field label { font: 500 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--smoke); }
+.field input, .field select { height: 46px; border-radius: 14px; border: 1px solid var(--edge); background: rgba(0,0,0,.35); padding: 0 14px; outline: none; color: var(--paper); font: 14px var(--f-mono); }
+.field small { color: var(--smoke); font-size: 12px; line-height: 1.45; }
+.field small a { color: var(--mist); }
+.check { font: 12px var(--f-mono); color: var(--mist); }
+.card .unread-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--paper); box-shadow: 0 0 12px rgba(255,255,255,.7); display: inline-block; margin-left: 8px; animation: ping 2.4s var(--ease) infinite; }
+
 /* ---------- phone: thumb dock + filter sheet ---------- */
 .dock {
   position: fixed; z-index: 70; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px));
@@ -337,6 +387,9 @@ body.locked { overflow: hidden; }
   .sheet.open { translate: 0 0; }
   .sheet.dragging { transition: none; }
   .sheet .actions .btn { flex: 1; justify-content: center; height: 50px; }
+  .sheet.chatting { height: 92vh; max-height: 92vh; }
+  .composer textarea, .bidrow input, .field input, .field select { font-size: 16px; }
+  .icon-btn { width: 40px; height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
@@ -350,6 +403,8 @@ body.locked { overflow: hidden; }
   <header class="bar glass">
     <div class="logo"><i></i>Radar</div>
     <div class="meta" id="meta">загрузка базы…</div>
+    <button class="btn icon-btn" id="bell" hidden aria-label="Сообщения"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="badge" id="bellBadge"></span></button>
+    <button class="btn icon-btn" id="gear" hidden aria-label="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <button class="btn solid" id="refresh" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>
       <span>Обновить</span>
@@ -422,16 +477,76 @@ body.locked { overflow: hidden; }
   <button class="btn close" id="sClose" aria-label="Закрыть">✕</button>
   <div class="card-top"><span class="src" id="sSrc"></span><span id="sTime"></span></div>
   <h2 id="sTitle"></h2>
-  <div class="sscroll">
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tabOrder" aria-selected="true">Заказ</button>
+    <button role="tab" id="tabChat" aria-selected="false">Чат с заказчиком<span class="badge" id="chatBadge"></span></button>
+  </div>
+  <div class="sscroll" id="orderPane">
     <div class="facts" id="sFacts"></div>
     <div class="plan" id="sPlan"></div>
     <div class="body" id="sBody"></div>
   </div>
-  <div class="actions">
+  <div class="actions" id="orderActions">
     <a class="btn solid" id="sLink" href="#" target="_blank" rel="noopener">Открыть заказ на бирже ↗</a>
     <button class="btn" id="sCopy">Скопировать описание</button>
   </div>
+  <div class="chatpane" id="chatPane" hidden>
+    <div class="chat-status"><span id="chatWho"></span><span id="chatState"></span></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="notice" id="chatNotice" hidden></div>
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="bidrow" id="bidRow" hidden>
+        Сумма <input id="bidAmount" inputmode="decimal"> <span id="bidCur"></span>
+        · срок <input id="bidDays" inputmode="numeric" style="width:70px"> дн
+        <small>Первое сообщение уйдёт откликом под заказом: заказчик увидит текст, сумму и срок.</small>
+      </div>
+      <div class="sendrow">
+        <textarea id="chatInput" rows="1" placeholder="Сообщение заказчику…"></textarea>
+        <button class="btn solid send" id="chatSend" type="submit" aria-label="Отправить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </form>
+  </div>
 </article>
+
+<section class="sheet glass fsheet" id="isheet" role="dialog" aria-modal="true" aria-labelledby="iTitle">
+  <div class="grip" aria-hidden="true"></div>
+  <button class="btn close" id="iClose" aria-label="Закрыть">✕</button>
+  <h2 id="iTitle">Сообщения</h2>
+  <div class="fbody" id="ilist"></div>
+</section>
+
+<section class="sheet glass fsheet" id="setsheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="grip" aria-hidden="true"></div>
+  <button class="btn close" id="setClose" aria-label="Закрыть">✕</button>
+  <h2 id="setTitle">Аккаунты бирж</h2>
+  <form class="fbody" id="setForm" autocomplete="off">
+    <p class="notice">Чат работает с биржами, у которых есть официальный API: <b>Freelancehunt</b> и <b>Freelancer.com</b>. Токены хранятся только в базе Radar на вашем компьютере.</p>
+    <div class="field">
+      <label for="fhToken">Freelancehunt — токен API</label>
+      <input id="fhToken" type="password" placeholder="не задан">
+      <small>freelancehunt.com → Настройки → API → «Создать токен».</small>
+    </div>
+    <div class="field">
+      <label for="fhSafe">Freelancehunt — оплата в откликах</label>
+      <select id="fhSafe">
+        <option value="employer">Сейф, комиссию платит заказчик</option>
+        <option value="split">Сейф, комиссия пополам</option>
+        <option value="developer">Сейф, комиссию платите вы</option>
+        <option value="">Прямая оплата</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="frToken">Freelancer.com — OAuth-токен</label>
+      <input id="frToken" type="password" placeholder="не задан">
+      <small>accounts.freelancer.com/settings/develop → создать приложение и выпустить токен с правами basic, fln:project_manage, fln:messaging.</small>
+    </div>
+    <div class="check" id="setCheck"></div>
+    <div class="ffoot">
+      <button class="btn" type="button" id="notifBtn">Включить уведомления</button>
+      <button class="btn solid" type="submit">Сохранить и проверить</button>
+    </div>
+  </form>
+</section>
 <section class="sheet fsheet glass" id="fsheet" role="dialog" aria-modal="true" aria-labelledby="fTitle">
   <div class="grip" aria-hidden="true"></div>
   <button class="btn close" id="fClose" aria-label="Закрыть">✕</button>
@@ -515,6 +630,8 @@ async function load() {
   state.stats = data.stats || {};
   state.generated = data.generated;
   $("#refresh").hidden = !state.server;
+  $("#bell").hidden = $("#gear").hidden = !state.server;
+  if (state.server && !chat.polling) { chat.polling = setInterval(pollInbox, 20000); pollInbox(); }
   const ok = (state.stats.sources || []).filter(s => s.ok).length;
   $("#meta").textContent = state.server
     ? `${ok} бирж онлайн · автообновление`
@@ -650,6 +767,7 @@ function more() {
   const next = state.view.slice(state.shown, state.shown + PAGE);
   $("#grid").insertAdjacentHTML("beforeend", next.map((o, k) => cardHTML(o, state.shown + k)).join(""));
   state.shown += next.length;
+  if (chat.unread.size) paintUnread();
   $("#more").hidden = state.shown >= state.view.length;
 }
 
@@ -677,7 +795,9 @@ if (fine && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
 /* ---------- detail sheet ---------- */
 let current = null;
 function openSheet(o) {
-  current = o;
+  current = o; chat.order = o; chat.data = null;
+  $("#chatInput").value = ""; $("#bidAmount").value = "";
+  tab("order"); paintUnread();
   $("#sSrc").textContent = o.source; $("#sTime").textContent = ago(o.published);
   $("#sTitle").textContent = o.title;
   $("#sBody").textContent = o.description || "Описание доступно на странице заказа.";
@@ -719,6 +839,7 @@ function show(el) {
 }
 function closeSheet(fromHash) {
   if (!openEl) return;
+  if (openEl === $("#sheet")) clearInterval(chat.timer);
   openEl.classList.remove("open"); openEl.style.translate = ""; openEl = null;
   $("#veil").classList.remove("open"); document.body.classList.remove("locked"); $("#dock").classList.remove("away");
   if (!fromHash && location.hash === "#open") history.back();
@@ -729,7 +850,7 @@ document.querySelectorAll(".sheet").forEach(sh => {
   let y0 = null, dy = 0;
   sh.addEventListener("touchstart", e => {
     if (!phone.matches) return;
-    const scroller = e.target.closest(".sscroll, .fbody");
+    const scroller = e.target.closest(".sscroll, .fbody, .msgs, textarea");
     if (scroller && scroller.scrollTop > 0) return;
     y0 = e.touches[0].clientY; dy = 0;
   }, { passive: true });
@@ -821,6 +942,169 @@ $("#refresh").onclick = async e => {
     await load();
   } catch (err) { toast("Не удалось обновить: сервер не отвечает"); }
   b.classList.remove("spin"); b.disabled = false;
+};
+
+/* ---------- chat ---------- */
+const chat = { order: null, data: null, timer: null, unread: new Set(), seen: new Set(), first: true };
+const SEND_ICON = $("#chatSend").innerHTML;
+function tab(which) {
+  const isChat = which === "chat";
+  $("#tabOrder").setAttribute("aria-selected", !isChat); $("#tabChat").setAttribute("aria-selected", isChat);
+  $("#orderPane").hidden = isChat; $("#orderActions").hidden = isChat; $("#chatPane").hidden = !isChat;
+  $("#sheet").classList.toggle("chatting", isChat);
+  clearInterval(chat.timer);
+  if (isChat) { loadChat(); chat.timer = setInterval(() => loadChat(true), 20000); }
+}
+$("#tabOrder").onclick = () => tab("order");
+$("#tabChat").onclick = () => tab("chat");
+function timeStr(ts) { const d = new Date(ts * 1000); return d.toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+function draftFor(o) {
+  const d = o.ai_hours_hi ? Math.ceil(o.ai_hours_hi / 6) : 3;
+  return `Здравствуйте! Готов взяться за «${o.title}». Сделаю за ${d} ${d === 1 ? "день" : d < 5 ? "дня" : "дней"}, по ходу работы буду показывать промежуточный результат. Если удобно, уточню детали в переписке.`;
+}
+function renderChat() {
+  const o = chat.order, d = chat.data, box = $("#msgs"), note = $("#chatNotice");
+  const msgs = d?.messages || [];
+  $("#chatWho").textContent = d ? (d.source_name || o.source) : o.source;
+  const st = !d ? "" : d.chat?.thread_id ? "переписка открыта" : d.chat?.bid_id ? "отклик отправлен, ждём ответа" : "";
+  $("#chatState").textContent = d?.error || d?.chat?.error || st;
+  box.innerHTML = msgs.length ? msgs.map(m => `<div class="msg ${m.from_me ? "me" : "them"} ${String(m.id).includes(":bid:") ? "bid" : ""}">${esc(m.text)}<time>${timeStr(m.at)}</time></div>`).join("")
+    : `<div class="chat-empty"><b>Переписки пока нет</b>${d && d.supported && d.configured ? "Напишите заказчику: первое сообщение уйдёт откликом под его заказом, ответы появятся здесь." : ""}</div>`;
+  box.scrollTop = box.scrollHeight;
+  let canSend = !!(d && d.supported && d.configured);
+  note.hidden = true;
+  if (!state.server) { note.hidden = false; canSend = false; note.innerHTML = "<b>Чат работает в Radar, запущенном на компьютере.</b> Эта страница — снимок базы, отсюда сообщения не отправляются."; }
+  else if (d && !d.supported) { note.hidden = false; note.innerHTML = `<b>${esc(d.source_name)}: только вручную.</b> ${esc(d.why_not)}<br><button class="btn" type="button" id="copyDraft">Скопировать отклик</button> <a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">Открыть заказ ↗</a>`; }
+  else if (d && !d.configured) { note.hidden = false; note.innerHTML = `<b>Нужен токен ${esc(d.source_name)}.</b> Добавьте его один раз, и сообщения будут уходить прямо отсюда.<br><button class="btn" type="button" id="openSet">Открыть настройки</button>`; }
+  $("#composer").hidden = !canSend;
+  const first = canSend && !d.chat?.bid_id && !d.chat?.thread_id;
+  $("#bidRow").hidden = !first;
+  if (first && !$("#bidAmount").value) {
+    $("#bidAmount").value = d.defaults.amount ? Math.round(d.defaults.amount) : "";
+    $("#bidDays").value = d.defaults.days || 3;
+    $("#bidCur").textContent = d.defaults.currency || "";
+  }
+  if (first && !$("#chatInput").value) $("#chatInput").value = draftFor(o);
+  autosize();
+  $("#copyDraft")?.addEventListener("click", () => navigator.clipboard?.writeText(draftFor(o)).then(() => toast("Отклик скопирован"), () => toast("Не удалось скопировать")));
+  $("#openSet")?.addEventListener("click", openSettings);
+}
+async function loadChat(silent) {
+  const o = chat.order; if (!o) return;
+  if (!state.server) { chat.data = { supported: ["freelancehunt", "freelancer.com"].includes(o.source), configured: false, messages: [], source_name: o.source }; renderChat(); return; }
+  if (!silent) { $("#msgs").innerHTML = `<div class="chat-empty">Загружаю переписку…</div>`; }
+  try {
+    const r = await fetch("api/chat/" + encodeURIComponent(o.id)); const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Сервер не ответил");
+    const before = chat.data?.messages?.length || 0;
+    chat.data = d;
+    if (!silent || d.messages.length !== before) renderChat();
+    chat.unread.delete(o.id); paintUnread();
+  } catch (e) { $("#chatState").textContent = e.message; }
+}
+function autosize() { const t = $("#chatInput"); t.style.height = "auto"; t.style.height = Math.min(160, t.scrollHeight) + "px"; }
+$("#chatInput").addEventListener("input", autosize);
+$("#chatInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && fine) { e.preventDefault(); $("#composer").requestSubmit(); } });
+$("#composer").addEventListener("submit", async e => {
+  e.preventDefault();
+  const text = $("#chatInput").value.trim(); if (!text) return;
+  const btn = $("#chatSend"); btn.disabled = true; btn.classList.add("spin");
+  const body = { text };
+  if (!$("#bidRow").hidden) { body.amount = $("#bidAmount").value.replace(",", "."); body.days = $("#bidDays").value; body.currency = chat.data?.defaults?.currency; }
+  try {
+    const r = await fetch("api/chat/" + encodeURIComponent(chat.order.id), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Не отправилось");
+    chat.data = { ...chat.data, chat: d.chat, messages: d.messages, error: null };
+    $("#chatInput").value = ""; $("#bidAmount").value = "";
+    renderChat(); toast(body.amount ? "Отклик отправлен заказчику" : "Сообщение отправлено"); navigator.vibrate?.(12);
+  } catch (err) { toast(err.message); $("#chatState").textContent = err.message; }
+  btn.disabled = false; btn.classList.remove("spin");
+});
+
+/* ---------- inbox + уведомления ---------- */
+function paintUnread() {
+  const n = chat.unread.size;
+  $("#bellBadge").textContent = n || "";
+  $("#chatBadge").textContent = chat.order && chat.unread.has(chat.order.id) ? "•" : "";
+  document.querySelectorAll(".card").forEach(c => {
+    const o = state.view[+c.dataset.i]; const has = o && chat.unread.has(o.id);
+    const top = c.querySelector(".src"); const dot = top.querySelector(".unread-dot");
+    if (has && !dot) top.insertAdjacentHTML("beforeend", '<i class="unread-dot" title="Новое сообщение"></i>');
+    if (!has && dot) dot.remove();
+  });
+}
+async function pollInbox() {
+  if (!state.server) return;
+  try {
+    const r = await fetch("api/inbox"); if (!r.ok) return; const d = await r.json();
+    chat.inbox = d.chats;
+    chat.unread = new Set(d.chats.filter(c => c.unread).map(c => c.order_id));
+    const fresh = d.latest.filter(m => !chat.seen.has(m.id));
+    fresh.forEach(m => chat.seen.add(m.id));
+    if (!chat.first && fresh.length) {
+      const m = fresh[0];
+      const openHere = openEl === $("#sheet") && chat.order?.id === m.order_id && !$("#chatPane").hidden;
+      if (openHere) loadChat(true);
+      else {
+        toast(`Новое сообщение: ${m.text.slice(0, 80)}`); navigator.vibrate?.([20, 60, 20]);
+        $("#bell").classList.remove("ring"); void $("#bell").offsetWidth; $("#bell").classList.add("ring");
+        if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+          try { const n = new Notification("Radar: ответ заказчика", { body: `${m.title || ""}\n${m.text}`.slice(0, 180), icon: "icon-192.png", tag: m.order_id }); n.onclick = () => { focus(); openChat(m.order_id); }; } catch (e) {}
+        }
+      }
+    }
+    chat.first = false;
+    paintUnread();
+    if (openEl === $("#isheet")) renderInbox();
+  } catch (e) {}
+}
+function orderById(id, row) {
+  return state.all.find(o => o.id === id) || { id, source: id.split(":")[0], title: row?.title || "Заказ", url: row?.url || "#", description: "", complexity: 1, ai_fit: 0, category: "other" };
+}
+function openChat(id, row) { openSheet(orderById(id, row)); tab("chat"); }
+function renderInbox() {
+  const list = chat.inbox || [];
+  $("#ilist").innerHTML = list.length ? list.map(c => `<button class="inbox-item ${c.unread ? "unread" : ""}" data-id="${esc(c.order_id)}">
+      <b>${esc(c.title || c.order_id)}</b><em>${c.unread ? c.unread + " нов." : ago(c.last_at)}</em>
+      <span>${c.last_text ? (c.last_from_me ? "Вы: " : "") + esc(c.last_text) : esc(c.source)}</span></button>`).join("")
+    : `<div class="chat-empty"><b>Переписок пока нет</b>Откройте заказ с Freelancehunt или Freelancer.com и напишите заказчику во вкладке «Чат».</div>`;
+}
+$("#ilist").onclick = e => { const b = e.target.closest(".inbox-item"); if (b) openChat(b.dataset.id, (chat.inbox || []).find(c => c.order_id === b.dataset.id)); };
+$("#bell").onclick = () => { renderInbox(); show($("#isheet")); pollInbox(); };
+$("#iClose").onclick = () => closeSheet();
+
+/* ---------- настройки ---------- */
+async function openSettings() {
+  show($("#setsheet"));
+  try {
+    const d = await (await fetch("api/settings")).json();
+    $("#fhToken").placeholder = d.freelancehunt.configured ? "сохранён (введите новый, чтобы заменить)" : "не задан";
+    $("#frToken").placeholder = d.freelancer.configured ? "сохранён (введите новый, чтобы заменить)" : "не задан";
+    $("#fhSafe").value = d.freelancehunt.safe_type;
+  } catch (e) { $("#setCheck").textContent = "Сервер не отвечает"; }
+}
+$("#gear").onclick = openSettings;
+$("#setClose").onclick = () => closeSheet();
+$("#setForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const body = { freelancehunt_safe_type: $("#fhSafe").value };
+  if ($("#fhToken").value.trim()) body.freelancehunt_token = $("#fhToken").value.trim();
+  if ($("#frToken").value.trim()) body.freelancer_token = $("#frToken").value.trim();
+  $("#setCheck").textContent = "Проверяю…";
+  try {
+    const d = await (await fetch("api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
+    $("#fhToken").value = $("#frToken").value = "";
+    const names = { freelancehunt: "Freelancehunt", "freelancer.com": "Freelancer.com" };
+    const lines = Object.entries(d.check || {}).map(([k, v]) => `${names[k]}: ${v.ok ? "подключено, аккаунт " + v.name : v.error}`);
+    $("#setCheck").textContent = lines.length ? lines.join(" · ") : "Токены не заданы";
+    if (lines.some(l => l.includes("подключено"))) toast("Аккаунт подключён");
+  } catch (err) { $("#setCheck").textContent = "Не удалось сохранить: сервер не отвечает"; }
+});
+$("#notifBtn").onclick = async () => {
+  if (!("Notification" in window)) return toast("Этот браузер не умеет системные уведомления");
+  const p = await Notification.requestPermission().catch(() => "denied");
+  toast(p === "granted" ? "Уведомления включены" : "Уведомления запрещены в браузере");
 };
 
 /* ---------- boot ---------- */

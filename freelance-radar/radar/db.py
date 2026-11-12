@@ -36,6 +36,27 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE INDEX IF NOT EXISTS ix_pub ON orders(published DESC);
 CREATE INDEX IF NOT EXISTS ix_price ON orders(price_rub);
 CREATE INDEX IF NOT EXISTS ix_cx ON orders(complexity);
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS chats (
+    order_id    TEXT PRIMARY KEY,          -- id заказа (source:external_id)
+    source      TEXT NOT NULL,
+    project_id  TEXT NOT NULL,             -- id заказа на бирже
+    employer_id TEXT,                      -- id заказчика на бирже
+    bid_id      TEXT,                      -- наш отклик
+    thread_id   TEXT,                      -- переписка с заказчиком
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    error       TEXT                       -- последняя ошибка опроса
+);
+CREATE TABLE IF NOT EXISTS messages (
+    id        TEXT PRIMARY KEY,            -- source:message_id (или bid:<id> для отклика)
+    order_id  TEXT NOT NULL,
+    from_me   INTEGER NOT NULL,
+    text      TEXT NOT NULL,
+    at        INTEGER NOT NULL,
+    unread    INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS ix_msg_order ON messages(order_id, at);
 CREATE TABLE IF NOT EXISTS runs (
     source TEXT PRIMARY KEY, ok INTEGER, count INTEGER, error TEXT, at INTEGER
 );
@@ -110,3 +131,68 @@ def export_json(con, path: Path, days: int = 30, desc_limit: int = 1500):
         r.pop("last_seen", None)
     path.write_text(json.dumps({"generated": int(time.time()), "orders": rows, "stats": stats(con)},
                                ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+
+
+# ------------------------------------------------------------- настройки и чаты
+def get_setting(con, key: str, default: str = "") -> str:
+    r = con.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+    return r[0] if r and r[0] is not None else default
+
+
+def set_setting(con, key: str, value: str):
+    con.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", (key, value))
+    con.commit()
+
+
+def get_chat(con, order_id: str):
+    r = con.execute("SELECT * FROM chats WHERE order_id=?", (order_id,)).fetchone()
+    return dict(r) if r else None
+
+
+def save_chat(con, chat: dict):
+    now = int(time.time())
+    chat.setdefault("created_at", now)
+    chat["updated_at"] = now
+    cols = ["order_id", "source", "project_id", "employer_id", "bid_id", "thread_id",
+            "created_at", "updated_at", "error"]
+    con.execute(f"INSERT OR REPLACE INTO chats ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})",
+                [chat.get(c) for c in cols])
+    con.commit()
+
+
+def add_messages(con, order_id: str, msgs: list[dict]) -> list[dict]:
+    """Сохраняет сообщения, возвращает новые входящие (для уведомлений)."""
+    fresh = []
+    for m in msgs:
+        if con.execute("SELECT 1 FROM messages WHERE id=?", (m["id"],)).fetchone():
+            continue
+        unread = 0 if m["from_me"] else 1
+        con.execute("INSERT INTO messages VALUES (?,?,?,?,?,?)",
+                    (m["id"], order_id, int(m["from_me"]), m["text"], m["at"], unread))
+        if unread:
+            fresh.append({**m, "order_id": order_id})
+    con.commit()
+    return fresh
+
+
+def chat_messages(con, order_id: str) -> list[dict]:
+    return [dict(r) for r in con.execute(
+        "SELECT * FROM messages WHERE order_id=? ORDER BY at, rowid", (order_id,))]
+
+
+def mark_read(con, order_id: str):
+    con.execute("UPDATE messages SET unread=0 WHERE order_id=?", (order_id,))
+    con.commit()
+
+
+def inbox(con) -> list[dict]:
+    """Все переписки: последнее сообщение, число непрочитанных, данные заказа."""
+    rows = con.execute("""
+        SELECT c.order_id, c.source, c.error, o.title, o.url,
+               (SELECT COUNT(*) FROM messages m WHERE m.order_id=c.order_id AND m.unread=1) AS unread,
+               (SELECT text FROM messages m WHERE m.order_id=c.order_id ORDER BY at DESC, rowid DESC LIMIT 1) AS last_text,
+               (SELECT from_me FROM messages m WHERE m.order_id=c.order_id ORDER BY at DESC, rowid DESC LIMIT 1) AS last_from_me,
+               COALESCE((SELECT MAX(at) FROM messages m WHERE m.order_id=c.order_id), c.updated_at) AS last_at
+        FROM chats c LEFT JOIN orders o ON o.id=c.order_id
+        ORDER BY unread > 0 DESC, last_at DESC""")
+    return [dict(r) for r in rows]
