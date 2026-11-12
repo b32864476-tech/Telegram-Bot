@@ -34,7 +34,7 @@ NOT_AI = ["лидоген", "лидген", "холодн", "звонк", "об�
           "монтаж оборуд", "выезд", "на объект", "офис", "бухгалтер", "юрист", "нотари", "solicitor",
           "lawyer", "accountant", "cold call", "sales rep", "lead generation", "в штат", "вакансия",
           "full-time", "on-site", "отзыв", "накрут", "фотосесс", "фотограф", "грузчик", "водител",
-          "telemarketing", "appointment setter", "смм-менеджер", "таргетолог"]
+          "telemarketing", "appointment setter", "recruit", "рекрут", "hr-менеджер", "team leader", "смм-менеджер", "таргетолог"]
 
 HARD = ["маркетплейс", "marketplace", "crm", "erp", "saas", "платформ", "platform", "highload",
         "блокчейн", "blockchain", "смарт-контракт", "smart contract", "мультивендор", "multi-vendor",
