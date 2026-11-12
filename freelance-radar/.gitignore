@@ -1,0 +1,4 @@
+orders.db
+static/orders.json
+__pycache__/
+.venv/
