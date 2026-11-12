@@ -209,6 +209,26 @@ h1 em { font-style: normal; font-weight: 500; background: linear-gradient(100deg
 .cx i { width: 5px; border-radius: 2px; background: rgba(255,255,255,.14); }
 .cx i:nth-child(1){height:6px}.cx i:nth-child(2){height:8px}.cx i:nth-child(3){height:11px}.cx i:nth-child(4){height:13px}.cx i:nth-child(5){height:16px}
 .cx i.on { background: var(--paper); box-shadow: 0 0 8px rgba(255,255,255,.4); }
+.eta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font: 12px/1.3 var(--f-mono); color: var(--mist); }
+.eta b { color: var(--paper); font-weight: 500; }
+.eta svg { width: 14px; height: 14px; flex: none; opacity: .8; }
+.eta .t { display: inline-flex; align-items: center; gap: 6px; }
+.eta .rate { margin-left: auto; color: var(--paper); }
+.fits { font: 11px var(--f-mono); padding: 3px 8px; border-radius: 999px; border: 1px solid var(--edge); white-space: nowrap; }
+.fits.ok { background: rgba(255,255,255,.9); color: var(--ink); border-color: transparent; }
+.fits.tight { border-style: dashed; color: var(--paper); }
+.fits.no { color: var(--smoke); text-decoration: line-through; }
+.sscroll { overflow-y: auto; min-height: 0; display: grid; gap: 18px; padding-right: 6px; overscroll-behavior: contain; }
+.plan { display: grid; gap: 10px; padding: 16px; border-radius: var(--r-md); background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+.plan-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.plan-head b { font: 300 20px/1.1 var(--f-display); letter-spacing: -.01em; }
+.plan-head span { font: 11px var(--f-mono); color: var(--mist); letter-spacing: .06em; }
+.step { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; font-size: 13.5px; }
+.step em { font: normal 12px var(--f-mono); color: var(--mist); white-space: nowrap; }
+.step i { grid-column: 1 / -1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.step i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--paper); border-radius: inherit; transform-origin: left; animation: grow .9s var(--ease) both; animation-delay: calc(var(--k) * 90ms + 200ms); }
+@keyframes grow { from { transform: scaleX(0); } }
+.plan small { color: var(--smoke); font-size: 12px; line-height: 1.45; }
 .cx-wrap { display: flex; align-items: center; gap: 8px; font: 11px var(--f-mono); color: var(--mist); }
 .tag { font: 11px var(--f-mono); padding: 4px 9px; border-radius: 999px; border: 1px solid var(--edge); color: var(--mist); white-space: nowrap; }
 .tag.ai { color: var(--ink); background: var(--paper); border-color: var(--paper); }
@@ -232,7 +252,7 @@ h1 em { font-style: normal; font-weight: 500; background: linear-gradient(100deg
 }
 .sheet.open { translate: -50% -50%; scale: 1; opacity: 1; filter: none; pointer-events: auto; }
 .sheet h2 { margin: 0; font: 300 clamp(20px, 3vw, 28px)/1.2 var(--f-display); letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; padding-right: 40px; }
-.sheet .body { overflow-y: auto; color: #d6d6d8; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; padding-right: 6px; min-height: 0; }
+.sheet .body { color: #d6d6d8; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; }
 .sheet .facts { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
 .fact { padding: 12px 14px; border-radius: var(--r-sm); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); min-width: 0; }
 .fact span { display: block; font: 10.5px var(--f-mono); text-transform: uppercase; letter-spacing: .12em; color: var(--smoke); margin-bottom: 4px; }
@@ -343,7 +363,7 @@ body.locked { overflow: hidden; }
     <div class="stats">
       <div class="stat glass"><b data-count="total">0</b><span>заказов в базе</span></div>
       <div class="stat glass"><b data-count="fresh">0</b><span>новых за 24 часа</span></div>
-      <div class="stat glass"><b data-count="aiShare">0</b><span>% по силам ИИ</span></div>
+      <div class="stat glass"><b data-count="rate">0</b><span>₽ за час с ИИ, медиана</span></div>
       <div class="stat glass"><b data-count="median">0</b><span>медианный бюджет, ₽</span></div>
     </div>
   </section>
@@ -362,6 +382,7 @@ body.locked { overflow: hidden; }
         <button data-v="cx_asc">Проще</button>
         <button data-v="cx_desc">Сложнее</button>
         <button data-v="value">Выгоднее</button>
+        <button data-v="fast">Быстрее</button>
       </div>
       <button class="btn more-toggle" id="moreToggle" aria-expanded="false">Фильтры</button>
     </div>
@@ -372,6 +393,10 @@ body.locked { overflow: hidden; }
     <div class="row extra">
       <span class="label">Направление</span>
       <div class="row" id="cats"></div>
+    </div>
+    <div class="row extra">
+      <span class="label">Сделать за</span>
+      <div class="row" id="eta"></div>
     </div>
     <div class="row extra">
       <span class="label">Биржа</span>
@@ -397,8 +422,11 @@ body.locked { overflow: hidden; }
   <button class="btn close" id="sClose" aria-label="Закрыть">✕</button>
   <div class="card-top"><span class="src" id="sSrc"></span><span id="sTime"></span></div>
   <h2 id="sTitle"></h2>
-  <div class="facts" id="sFacts"></div>
-  <div class="body" id="sBody"></div>
+  <div class="sscroll">
+    <div class="facts" id="sFacts"></div>
+    <div class="plan" id="sPlan"></div>
+    <div class="body" id="sBody"></div>
+  </div>
   <div class="actions">
     <a class="btn solid" id="sLink" href="#" target="_blank" rel="noopener">Открыть заказ на бирже ↗</a>
     <button class="btn" id="sCopy">Скопировать описание</button>
@@ -430,10 +458,33 @@ const CAT = { bot: "Боты", web: "Сайты", script: "Скрипты", ai: 
   text: "Тексты", design: "Дизайн", data: "Данные", video: "Видео", other: "Другое" };
 const CX = ["", "Лёгкий", "Простой", "Средний", "Сложный", "Очень сложный"];
 const SORT_NOTE = { new: "сначала свежие", price_desc: "по бюджету, дорогие сверху", price_asc: "по бюджету, дешёвые сверху",
-  cx_asc: "по сложности, простые сверху", cx_desc: "по сложности, сложные сверху", value: "бюджет ÷ сложность, лучшие сверху" };
+  cx_asc: "по сложности, простые сверху", cx_desc: "по сложности, сложные сверху", value: "больше рублей за час работы с ИИ", fast: "быстрее всего сделать с ИИ" };
 const PAGE = 48;
+/* Варианты фильтра «Сделать за»: верхняя граница оценки часов с ИИ. */
+const ETA = [["2", "до 2 ч", 2], ["6", "за день", 6], ["18", "за 3 дня", 18], ["42", "за неделю", 42]];
+const PLAN = {
+  bot: [["Разобрать ТЗ, сценарии и команды бота", .1], ["Код бота с ИИ (aiogram / python-telegram-bot)", .4], ["Тест в Telegram и правки", .3], ["Деплой на сервер и сдача", .2]],
+  web: [["Структура и тексты страниц", .15], ["Вёрстка и логика с ИИ", .45], ["Адаптив, проверка в браузерах", .25], ["Домен, хостинг, сдача", .15]],
+  script: [["Разобрать задачу и данные", .15], ["Код с ИИ", .4], ["Тест на реальных данных и правки", .3], ["Инструкция по запуску и сдача", .15]],
+  app: [["Экраны и архитектура", .15], ["Код с ИИ", .4], ["Тест на устройствах и правки", .3], ["Сборка, публикация, сдача", .15]],
+  ai: [["Разобрать задачу, выбрать модель", .15], ["Промпты, интеграция, код с ИИ", .45], ["Проверка качества ответов", .25], ["Сдача и инструкция", .15]],
+  text: [["Бриф и структура", .15], ["Черновик с ИИ", .3], ["Редактура и проверка фактов", .4], ["Сдача и правки", .15]],
+  design: [["Референсы и концепция", .2], ["Генерация и сборка макета", .4], ["Доработка вручную", .3], ["Исходники и сдача", .1]],
+  data: [["Разобрать источник данных", .15], ["Формулы или скрипт с ИИ", .4], ["Проверка результата", .3], ["Сдача", .15]],
+  video: [["Сценарий и материалы", .2], ["Генерация и монтаж с ИИ", .45], ["Цвет, звук, правки", .25], ["Рендер и сдача", .1]],
+  other: [["Разобраться в задаче", .25], ["Основная работа с ИИ", .45], ["Проверка и правки", .3]],
+};
+const FITS = { ok: "успеваете", tight: "впритык", no: "не успеть" };
+/* Часы → «40 мин», «2–5 ч», «1–2 дн» (рабочий день ≈ 6 ч). */
+function hrs(h) { if (h < 1) return Math.max(5, Math.round(h * 60 / 5) * 5) + " мин"; if (h <= 8) return (Math.round(h * 2) / 2).toLocaleString("ru-RU") + " ч"; return (Math.round(h / 6 * 2) / 2).toLocaleString("ru-RU") + " дн"; }
+function hrsRange(lo, hi) {
+  if (hi <= 8) { const a = hrs(lo), b = hrs(hi); return a.split(" ")[1] === b.split(" ")[1] ? a.split(" ")[0] + "–" + b : a + " – " + b; }
+  const a = hrs(Math.max(lo, 6.01)), b = hrs(hi); return lo > 8 ? a.split(" ")[0] + "–" + b : hrs(lo) + " – " + b;
+}
+function days(d) { return d < 1 ? Math.round(d * 8) + " ч" : (d % 1 ? d.toLocaleString("ru-RU") : d) + " дн"; }
+const ICON_T = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>';
 const $ = s => document.querySelector(s);
-const state = { all: [], view: [], shown: 0, sort: "new", cx: new Set(), cats: new Set(), srcs: new Set(),
+const state = { all: [], view: [], shown: 0, sort: "new", cx: new Set(), cats: new Set(), srcs: new Set(), eta: null,
   q: "", pmin: null, pmax: null, aiOnly: true, priced: false, server: false };
 
 const fmt = n => n == null ? "" : Math.round(n).toLocaleString("ru-RU");
@@ -480,7 +531,7 @@ function heroStats() {
   const vals = {
     total: a.length,
     fresh: a.filter(o => now - (o.first_seen || o.published) < 86400).length,
-    aiShare: a.length ? Math.round(ai.length / a.length * 100) : 0,
+    rate: (r => r.length ? r[Math.floor(r.length / 2)] : 0)(ai.map(o => o.rate_rub).filter(Boolean).sort((x, y) => x - y)),
     median: prices.length ? prices[Math.floor(prices.length / 2)] : 0,
   };
   document.querySelectorAll("[data-count]").forEach(el => countTo(el, vals[el.dataset.count]));
@@ -507,6 +558,14 @@ function buildChips() {
   mk($("#cx"), [1, 2, 3, 4, 5].map(v => [v, xc[v] || 0]), state.cx, v => `${v} · ${CX[v]}`);
   mk($("#cats"), Object.keys(CAT).filter(k => cc[k]).map(k => [k, cc[k]]), state.cats, k => CAT[k]);
   mk($("#srcs"), Object.entries(sc).sort((a, b) => b[1] - a[1]), state.srcs, s => s);
+  const ec = v => state.all.filter(o => o.ai_hours_hi != null && o.ai_hours_hi <= v).length;
+  $("#eta").innerHTML = ETA.map(([v, l, h]) => `<button class="chip" data-v="${v}" aria-pressed="${state.eta === h}">${l} <small>${ec(h)}</small></button>`).join("");
+  $("#eta").onclick = e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    const h = +b.dataset.v; state.eta = state.eta === h ? null : h;
+    $("#eta").querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", +c.dataset.v === state.eta));
+    navigator.vibrate?.(8); apply();
+  };
 }
 
 /* ---------- filter + sort ---------- */
@@ -519,6 +578,7 @@ function apply(animate = true) {
     if (state.cx.size && !state.cx.has(String(o.complexity))) return false;
     if (state.cats.size && !state.cats.has(o.category)) return false;
     if (state.srcs.size && !state.srcs.has(o.source)) return false;
+    if (state.eta != null && !(o.ai_hours_hi <= state.eta)) return false;
     if (state.pmin != null && (o.price_rub ?? -1) < state.pmin) return false;
     if (state.pmax != null && (o.price_rub == null || o.price_rub > state.pmax)) return false;
     if (words.length) { const hay = (o.title + " " + o.description + " " + (o.tags || "")).toLowerCase(); if (!words.every(w => hay.includes(w))) return false; }
@@ -531,7 +591,8 @@ function apply(animate = true) {
     price_asc: (a, b) => (P(a) ?? Infinity) - (P(b) ?? Infinity),
     cx_asc: (a, b) => a.complexity - b.complexity || (P(b) ?? -1) - (P(a) ?? -1),
     cx_desc: (a, b) => b.complexity - a.complexity || (P(b) ?? -1) - (P(a) ?? -1),
-    value: (a, b) => ((P(b) ?? 0) * b.ai_fit / b.complexity) - ((P(a) ?? 0) * a.ai_fit / a.complexity),
+    value: (a, b) => (b.rate_rub ?? -1) - (a.rate_rub ?? -1),
+    fast: (a, b) => (a.ai_hours_hi ?? 1e9) - (b.ai_hours_hi ?? 1e9) || (P(b) ?? -1) - (P(a) ?? -1),
   }[state.sort];
   v.sort(cmp);
   state.view = v;
@@ -556,10 +617,16 @@ function cardHTML(o, i) {
     ? `<div class="price">${o.price_min && o.price_min !== o.price ? "до " : ""}${fmt(o.price_rub)} ₽${o.currency && o.currency !== "RUB" ? `<small>${fmt(o.price)} ${esc(o.currency)}</small>` : `<small>${o.tags && o.tags.includes("почасовая") ? "почасовая, оценка" : "бюджет"}</small>`}</div>`
     : `<div class="price none">Бюджет по договорённости</div>`;
   const bars = [1, 2, 3, 4, 5].map(n => `<i class="${n <= o.complexity ? "on" : ""}"></i>`).join("");
+  const eta = o.ai_hours_hi != null ? `<div class="eta">
+      <span class="t" title="Оценка времени работы с ИИ">${ICON_T}С ИИ <b>${hrsRange(o.ai_hours_lo, o.ai_hours_hi)}</b></span>
+      ${o.deadline_days ? `<span class="fits ${o.fits}" title="Срок заказчика: ${days(o.deadline_days)}">срок ${days(o.deadline_days)} · ${FITS[o.fits]}</span>` : ""}
+      ${o.rate_rub ? `<span class="rate" title="Бюджет ÷ часы с ИИ">≈ ${fmt(o.rate_rub)} ₽/ч</span>` : ""}
+    </div>` : "";
   return `<article class="card glass" tabindex="0" data-i="${i}" style="--i:${i % PAGE}">
     <div class="card-top"><span class="src">${esc(o.source)}</span><span>${ago(o.published)}</span></div>
     <h3>${esc(o.title)}</h3>
     <p>${esc(o.description || "Описание на бирже")}</p>
+    ${eta}
     <div class="card-foot">
       ${price}
       <div class="badges">
@@ -621,9 +688,24 @@ function openSheet(o) {
     ["По силам ИИ", o.ai_fit + "%"],
     ["Направление", CAT[o.category] || o.category],
   ];
+  if (o.ai_hours_hi != null) {
+    facts.push(["С ИИ", hrsRange(o.ai_hours_lo, o.ai_hours_hi)], ["Без ИИ", "≈ " + hrs(o.manual_hours)]);
+    if (o.rate_rub) facts.push(["Выходит в час", "≈ " + fmt(o.rate_rub) + " ₽"]);
+    if (o.deadline_days) facts.push(["Срок заказчика", `${days(o.deadline_days)} · ${FITS[o.fits]}`]);
+  }
   if (o.bids != null) facts.push(["Откликов", o.bids]);
   if (o.tags) facts.push(["Теги", o.tags, "wide"]);
   $("#sFacts").innerHTML = facts.map(([k, v, w]) => `<div class="fact ${w || ""}"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
+  const plan = $("#sPlan");
+  plan.hidden = o.ai_hours_hi == null;
+  if (!plan.hidden) {
+    const mid = (o.ai_hours_lo + o.ai_hours_hi) / 2, steps = PLAN[o.category] || PLAN.other;
+    const speed = o.manual_hours ? Math.round(o.manual_hours / mid * 10) / 10 : null;
+    plan.innerHTML = `<div class="plan-head"><b>План работы · ${hrsRange(o.ai_hours_lo, o.ai_hours_hi)}</b><span>${speed ? `в ${String(speed).replace(".", ",")} раза быстрее, чем вручную` : ""}</span></div>`
+      + steps.map(([t, f], k) => `<div class="step" style="--k:${k}"><span>${t}</span><em>${hrs(mid * f)}</em><i style="--w:${Math.round(f * 100 / Math.max(...steps.map(x => x[1])))}%"></i></div>`).join("")
+      + `<small>Оценка по направлению, сложности и объёму из ТЗ${o.deadline_days ? `, срок заказчика ${days(o.deadline_days)}` : ""}. Время на переписку с заказчиком не входит.</small>`;
+  }
+  $("#sheet .sscroll").scrollTop = 0;
   show($("#sheet"));
   $("#sClose").focus({ preventScroll: true });
 }
@@ -647,7 +729,7 @@ document.querySelectorAll(".sheet").forEach(sh => {
   let y0 = null, dy = 0;
   sh.addEventListener("touchstart", e => {
     if (!phone.matches) return;
-    const scroller = e.target.closest(".body, .fbody");
+    const scroller = e.target.closest(".sscroll, .fbody");
     if (scroller && scroller.scrollTop > 0) return;
     y0 = e.touches[0].clientY; dy = 0;
   }, { passive: true });
@@ -681,7 +763,7 @@ seg.addEventListener("click", e => {
   seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
   setSort(b.dataset.v);
 });
-const SORT_LBL = { new: "Новые", price_desc: "Дороже", price_asc: "Дешевле", cx_asc: "Проще", cx_desc: "Сложнее", value: "Выгоднее" };
+const SORT_LBL = { new: "Новые", price_desc: "Дороже", price_asc: "Дешевле", cx_asc: "Проще", cx_desc: "Сложнее", value: "Выгоднее", fast: "Быстрее" };
 function setSort(v, run = true) {
   state.sort = v;
   seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === v));
@@ -702,7 +784,7 @@ function placeFilters() {
 }
 phone.addEventListener?.("change", placeFilters); placeFilters();
 function activeFilters() {
-  return state.cx.size + state.cats.size + state.srcs.size + (state.pmin != null) + (state.pmax != null) + (state.priced ? 1 : 0) + (state.aiOnly ? 0 : 1);
+  return state.cx.size + state.cats.size + state.srcs.size + (state.pmin != null) + (state.pmax != null) + (state.priced ? 1 : 0) + (state.aiOnly ? 0 : 1) + (state.eta != null ? 1 : 0);
 }
 $("#dockFilters").onclick = () => show($("#fsheet"));
 $("#dockSort").onclick = () => show($("#fsheet"));
@@ -710,9 +792,9 @@ $("#dockSearch").onclick = () => { $("#q").scrollIntoView({ behavior: "smooth", 
 $("#dockTop").onclick = () => scrollTo({ top: 0, behavior: "smooth" });
 $("#fApply").onclick = () => { closeSheet(); $("#count").scrollIntoView({ behavior: "smooth", block: "start" }); };
 $("#fReset").onclick = () => {
-  state.cx.clear(); state.cats.clear(); state.srcs.clear(); state.pmin = state.pmax = null; state.priced = false; state.aiOnly = true;
+  state.cx.clear(); state.cats.clear(); state.srcs.clear(); state.pmin = state.pmax = null; state.priced = false; state.aiOnly = true; state.eta = null;
   $("#pmin").value = $("#pmax").value = ""; $("#priced").checked = false; $("#aiOnly").checked = true;
-  document.querySelectorAll("#cx .chip, #cats .chip, #srcs .chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+  document.querySelectorAll("#cx .chip, #cats .chip, #srcs .chip, #eta .chip").forEach(c => c.setAttribute("aria-pressed", "false"));
   setSort("new");
 };
 let lastY = 0;

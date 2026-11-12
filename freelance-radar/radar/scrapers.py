@@ -93,9 +93,12 @@ async def freelance_ru(c: httpx.AsyncClient, pages: int = 8) -> list[dict]:
             amount, cur = parse_money(budget.get_text(" ") if budget else "")
             desc = card.select_one(".task-card__desc")
             tags = ", ".join(t.get_text(strip=True) for t in card.select(".task-chip"))
-            out.append(mk("freelance.ru", m.group(1), "https://freelance.ru" + a["href"],
-                          a.get("title") or a.get_text(), desc.decode_contents() if desc else "",
-                          tags, amount, cur))
+            meta = card.select_one(".task-card__meta-rows")
+            o = mk("freelance.ru", m.group(1), "https://freelance.ru" + a["href"],
+                   a.get("title") or a.get_text(), desc.decode_contents() if desc else "",
+                   tags, amount, cur)
+            o["deadline_text"] = clean(meta.get_text(" ")) if meta else ""
+            out.append(o)
         await asyncio.sleep(0.5)
     return out
 

@@ -25,7 +25,13 @@ CREATE TABLE IF NOT EXISTS orders (
     bids        INTEGER,
     published   INTEGER,                   -- unix time
     first_seen  INTEGER NOT NULL,
-    last_seen   INTEGER NOT NULL
+    last_seen   INTEGER NOT NULL,
+    ai_hours_lo REAL,                      -- оценка часов работы с ИИ
+    ai_hours_hi REAL,
+    manual_hours REAL,                     -- то же без ИИ
+    rate_rub    INTEGER,                   -- бюджет / часы с ИИ
+    deadline_days REAL,                    -- срок заказчика, дней
+    fits        TEXT                       -- ok | tight | no | NULL
 );
 CREATE INDEX IF NOT EXISTS ix_pub ON orders(published DESC);
 CREATE INDEX IF NOT EXISTS ix_price ON orders(price_rub);
@@ -36,13 +42,20 @@ CREATE TABLE IF NOT EXISTS runs (
 """
 
 FIELDS = ["id", "source", "url", "title", "description", "tags", "price", "price_min", "currency",
-          "price_rub", "category", "complexity", "ai_fit", "bids", "published"]
+          "price_rub", "category", "complexity", "ai_fit", "bids", "published",
+          "ai_hours_lo", "ai_hours_hi", "manual_hours", "rate_rub", "deadline_days", "fits"]
+NEW_COLUMNS = {"ai_hours_lo": "REAL", "ai_hours_hi": "REAL", "manual_hours": "REAL",
+               "rate_rub": "INTEGER", "deadline_days": "REAL", "fits": "TEXT"}
 
 
 def connect() -> sqlite3.Connection:
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
+    have = {r[1] for r in con.execute("PRAGMA table_info(orders)")}
+    for col, typ in NEW_COLUMNS.items():       # миграция старых баз
+        if col not in have:
+            con.execute(f"ALTER TABLE orders ADD COLUMN {col} {typ}")
     return con
 
 
