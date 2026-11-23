@@ -82,13 +82,25 @@ def check_mac_permissions() -> bool:
     """Без «Универсального доступа» macOS молча выбрасывает нажатия — проверяем заранее."""
     if OS != "mac":
         return True
+    trusted = None
+    try:
+        import Quartz  # право «отправлять события» (macOS 10.15+)
+
+        trusted = bool(Quartz.CGPreflightPostEventAccess())
+        if not trusted:
+            Quartz.CGRequestPostEventAccess()
+    except Exception:  # noqa: BLE001
+        pass
     try:
         import HIServices
 
-        trusted = HIServices.AXIsProcessTrustedWithOptions(
-            {HIServices.kAXTrustedCheckOptionPrompt: True}  # macOS сам покажет окно с настройкой
+        ax = HIServices.AXIsProcessTrustedWithOptions(
+            {HIServices.kAXTrustedCheckOptionPrompt: not trusted}  # macOS сам покажет окно с настройкой
         )
+        trusted = bool(ax) if trusted is None else trusted
     except Exception:  # noqa: BLE001
+        pass
+    if trusted is None:
         return True
     if not trusted:
         print(
@@ -101,23 +113,145 @@ def check_mac_permissions() -> bool:
     return bool(trusted)
 
 
-class MacQuartz:
-    """Клики и прокрутка на macOS напрямую через Quartz.
+def _mac_caps_lock(set_to=None):
+    """Читает (и при set_to≠None ставит) состояние Caps Lock через IOKit.
 
-    - клики помнят серию, поэтому два тапа подряд — настоящий двойной клик;
-    - прокрутка попиксельная и плавная, как на трекпаде;
-    - к кликам добавляются зажатые модификаторы (⌘+клик, ⇧+клик).
+    Программное нажатие клавиши Caps Lock macOS игнорирует, поэтому меняем
+    состояние напрямую — так же, как это делает сама система.
+    Возвращает текущее состояние или None, если IOKit недоступен.
+    """
+    try:
+        import ctypes
+
+        iokit = ctypes.CDLL("/System/Library/Frameworks/IOKit.framework/IOKit")
+        libc = ctypes.CDLL(None)
+        u32 = ctypes.c_uint32
+        iokit.IOServiceMatching.restype = ctypes.c_void_p
+        iokit.IOServiceMatching.argtypes = [ctypes.c_char_p]
+        iokit.IOServiceGetMatchingService.restype = u32
+        iokit.IOServiceGetMatchingService.argtypes = [u32, ctypes.c_void_p]
+        iokit.IOServiceOpen.restype = ctypes.c_int
+        iokit.IOServiceOpen.argtypes = [u32, u32, u32, ctypes.POINTER(u32)]
+        iokit.IOHIDGetModifierLockState.restype = ctypes.c_int
+        iokit.IOHIDGetModifierLockState.argtypes = [u32, ctypes.c_int, ctypes.POINTER(ctypes.c_bool)]
+        iokit.IOHIDSetModifierLockState.restype = ctypes.c_int
+        iokit.IOHIDSetModifierLockState.argtypes = [u32, ctypes.c_int, ctypes.c_bool]
+        iokit.IOServiceClose.argtypes = [u32]
+        iokit.IOObjectRelease.argtypes = [u32]
+
+        task = u32.in_dll(libc, "mach_task_self_").value
+        svc = iokit.IOServiceGetMatchingService(0, iokit.IOServiceMatching(b"IOHIDSystem"))
+        if not svc:
+            return None
+        conn = u32()
+        kr = iokit.IOServiceOpen(svc, task, 1, ctypes.byref(conn))  # kIOHIDParamConnectType
+        iokit.IOObjectRelease(svc)
+        if kr != 0:
+            return None
+        try:
+            if set_to is not None:
+                iokit.IOHIDSetModifierLockState(conn, 1, bool(set_to))  # kIOHIDCapsLockState
+            state = ctypes.c_bool()
+            if iokit.IOHIDGetModifierLockState(conn, 1, ctypes.byref(state)) != 0:
+                return None
+            return bool(state.value)
+        finally:
+            iokit.IOServiceClose(conn)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+class MacInput:
+    """Клавиатура, клики и прокрутка на macOS напрямую через Quartz.
+
+    Почему не pynput: он запоминает раскладку в момент запуска (после смены EN/RU
+    вкладка «Текст» печатала бы не те буквы), не передаёт Caps Lock и признак
+    автоповтора, а к кликам не добавляет зажатые ⌘/⇧/⌥.
     """
 
-    def __init__(self):
+    def __init__(self, Key):
         import Quartz
 
-        self.Q = Quartz
+        Q = self.Q = Quartz
+        self.Key = Key  # pynput.keyboard.Key — только как таблица кодов клавиш Mac
+        self.held: set[str] = set()  # зажатые модификаторы
+        self.caps = bool(_mac_caps_lock())
         self.last = (0.0, None, 0)  # время, кнопка, номер клика в серии
+        self.MOD_FLAGS = {
+            "ShiftLeft": Q.kCGEventFlagMaskShift, "ShiftRight": Q.kCGEventFlagMaskShift,
+            "ControlLeft": Q.kCGEventFlagMaskControl, "ControlRight": Q.kCGEventFlagMaskControl,
+            "AltLeft": Q.kCGEventFlagMaskAlternate, "AltRight": Q.kCGEventFlagMaskAlternate,
+            "MetaLeft": Q.kCGEventFlagMaskCommand, "MetaRight": Q.kCGEventFlagMaskCommand,
+        }
+        # У настоящей клавиатуры Mac стрелки и F-клавиши идут с флагами Fn/NumPad —
+        # без них не срабатывают системные сочетания вроде ⌃← / ⌃↑ (Mission Control)
+        fn, num = Q.kCGEventFlagMaskSecondaryFn, Q.kCGEventFlagMaskNumericPad
+        self.EXTRA_FLAGS = {c: fn | num for c in ("ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight")}
+        self.EXTRA_FLAGS.update({c: fn for c in ("Home", "End", "PageUp", "PageDown", "Delete",
+                                                 *(f"F{i}" for i in range(1, 21)))})
 
-    def _flags(self):
+    def flags(self, with_caps=True) -> int:
+        f = 0
+        for c in self.held:
+            f |= self.MOD_FLAGS[c]
+        if with_caps and self.caps:
+            f |= self.Q.kCGEventFlagMaskAlphaShift
+        return f
+
+    def _post(self, ev):
+        self.Q.CGEventPost(self.Q.kCGHIDEventTap, ev)
+
+    def _keycode(self, code):
+        if code in CHAR_KEYS:
+            return CHAR_KEYS[code][2]
+        name = SPECIAL_KEYS.get(code)
+        key = getattr(self.Key, name, None) if name else None
+        return key.value if key is not None else None  # KeyCode pynput (vk / медиа)
+
+    def key(self, code: str, down: bool, repeat: bool = False) -> bool:
         Q = self.Q
-        return Q.CGEventSourceFlagsState(Q.kCGEventSourceStateHIDSystemState)
+        if code == "CapsLock":
+            if down and not repeat:
+                state = _mac_caps_lock(not self.caps)
+                self.caps = (not self.caps) if state is None else state
+            return True
+        kc = self._keycode(code)
+        if kc is None:
+            return False
+        if isinstance(kc, int):
+            vk = kc
+        elif getattr(kc, "_is_media", False):
+            self._post(kc._event(set(), {}, down))  # громкость, музыка — системные события
+            return True
+        else:
+            vk = kc.vk
+        if code in self.MOD_FLAGS:
+            (self.held.add if down else self.held.discard)(code)
+            ev = Q.CGEventCreateKeyboardEvent(None, vk, down)
+            Q.CGEventSetType(ev, Q.kCGEventFlagsChanged)
+            Q.CGEventSetFlags(ev, self.flags())
+            self._post(ev)
+            return True
+        ev = Q.CGEventCreateKeyboardEvent(None, vk, down)
+        Q.CGEventSetFlags(ev, self.flags() | self.EXTRA_FLAGS.get(code, 0))
+        if repeat:
+            Q.CGEventSetIntegerValueField(ev, Q.kCGKeyboardEventAutorepeat, 1)
+        self._post(ev)
+        return True
+
+    def type_char(self, ch: str):
+        """Символ как Юникод — не зависит от раскладки, выбранной на Mac."""
+        Q = self.Q
+        n = len(ch.encode("utf-16-le")) // 2
+        for down in (True, False):
+            ev = Q.CGEventCreateKeyboardEvent(None, 0, down)
+            Q.CGEventSetFlags(ev, 0)
+            Q.CGEventKeyboardSetUnicodeString(ev, n, ch)
+            self._post(ev)
+
+    def release_all(self):
+        for code in list(self.held):
+            self.key(code, False)
 
     def click(self, button: str, count: int):
         Q = self.Q
@@ -128,16 +262,17 @@ class MacQuartz:
         }
         down, up, btn = kinds.get(button, kinds["left"])
         pos = Q.CGEventGetLocation(Q.CGEventCreate(None))
-        flags = self._flags()
+        flags = self.flags(with_caps=False)  # ⌘+клик, ⇧+клик
         for _ in range(count):
             now = time.monotonic()
             t, b, n = self.last
+            # клики подряд — серия: так macOS распознаёт двойной и тройной клик
             state = n + 1 if (b == button and now - t < 0.5 and n < 3) else 1
             for kind in (down, up):
                 ev = Q.CGEventCreateMouseEvent(None, kind, pos, btn)
                 Q.CGEventSetIntegerValueField(ev, Q.kCGMouseEventClickState, state)
                 Q.CGEventSetFlags(ev, flags)
-                Q.CGEventPost(Q.kCGHIDEventTap, ev)
+                self._post(ev)
             self.last = (now, button, state)
 
     def scroll(self, dx: int, dy: int):
@@ -145,7 +280,8 @@ class MacQuartz:
         # wheel1 > 0 — вверх; wheel2 > 0 — влево, поэтому dx меняет знак
         ev = Q.CGEventCreateScrollWheelEvent(None, Q.kCGScrollEventUnitPixel, 2, int(dy), int(-dx))
         Q.CGEventSetIntegerValueField(ev, Q.kCGScrollWheelEventIsContinuous, 1)
-        Q.CGEventPost(Q.kCGHIDEventTap, ev)
+        Q.CGEventSetFlags(ev, self.flags(with_caps=False))  # ⌃+прокрутка, ⌘+прокрутка
+        self._post(ev)
 
 
 class DryRun:
@@ -168,12 +304,15 @@ class Backend:
             return
         from pynput import keyboard, mouse  # импорт здесь: нужен доступ к экрану
 
-        self.kb = keyboard.Controller()
         self.mouse = mouse.Controller()
         self._Key = keyboard.Key
         self._KeyCode = keyboard.KeyCode
         self._Button = mouse.Button
-        self.mac = MacQuartz() if OS == "mac" else None
+        if OS == "mac":
+            self.mac = MacInput(keyboard.Key)
+            self.kb = None
+        else:
+            self.kb = keyboard.Controller()
 
     # ---------- клавиатура ----------
     def resolve(self, code: str):
@@ -195,15 +334,21 @@ class Backend:
             return self._KeyCode.from_char(char)
         return None
 
-    def down(self, code: str) -> bool:
-        key = self.resolve(code)
-        if key is None:
+    def down(self, code: str, repeat: bool = False) -> bool:
+        if self.mac:
+            ok = self.mac.key(MOD_ALIAS.get(code, code), True, repeat)
+        else:
+            key = self.resolve(code)
+            ok = key is not None
+            if ok:
+                self.kb.press(key)
+        if not ok:
             log.warning("неизвестная клавиша: %s", code)
-            return False
-        self.kb.press(key)
-        return True
+        return ok
 
     def up(self, code: str) -> bool:
+        if self.mac:
+            return self.mac.key(MOD_ALIAS.get(code, code), False)
         key = self.resolve(code)
         if key is None:
             return False
@@ -220,9 +365,16 @@ class Backend:
             for c in codes:
                 if self.down(c):
                     pressed.append(c)
+                    self._pause()
         finally:
             for c in reversed(pressed):
                 self.up(c)
+                self._pause()
+
+    def _pause(self):
+        # системные сочетания macOS (⌃Space, ⌘Space) не ловят слишком быстрые нажатия
+        if self.mac:
+            time.sleep(0.02)
 
     def type_text(self, text: str):
         """Набор произвольного текста (любой язык, эмодзи) независимо от раскладки."""
@@ -231,6 +383,8 @@ class Backend:
                 self.tap("Enter")
             elif ch == "\t":
                 self.tap("Tab")
+            elif self.mac:
+                self.mac.type_char(ch)
             else:
                 self.kb.type(ch)
 

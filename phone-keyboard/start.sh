@@ -10,4 +10,8 @@ if [ ! -f .venv/.installed ]; then
   python3 -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -r requirements.txt \
     && touch .venv/.installed || { echo "Не удалось установить зависимости."; read -r -p "Enter для выхода..." _; exit 1; }
 fi
+# На Mac не даём системе уснуть, пока программа работает (иначе пропадёт Wi‑Fi-связь с телефоном)
+if [ "$(uname)" = "Darwin" ]; then
+  exec caffeinate -i .venv/bin/python -m keyboard "$@"
+fi
 exec .venv/bin/python -m keyboard "$@"

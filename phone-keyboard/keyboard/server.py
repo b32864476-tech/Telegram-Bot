@@ -70,7 +70,7 @@ class Session:
         b = self.b
         if t == "down":
             k = str(m["k"])
-            if b.down(k):
+            if b.down(k, repeat=k in self.keys):  # повторный down без up — автоповтор
                 self.keys.add(k)
         elif t == "up":
             k = str(m["k"])
@@ -115,6 +115,8 @@ class Session:
                 pass
         self.keys.clear()
         self.buttons.clear()
+        if self.b.mac:
+            self.b.mac.release_all()
 
 
 def make_app(backend: Backend, token: str) -> web.Application:
