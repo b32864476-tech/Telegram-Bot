@@ -44,7 +44,10 @@ cd ~/Downloads && curl -L -o phone-keyboard.zip https://github.com/b32864476-tec
 cd ~/Downloads/Telegram-Bot-claude-exciting-lovelace-j1oloo/phone-keyboard && bash start.sh
 ```
 
-(или двойной клик по `start.command` в этой папке в Finder). Если спросит про входящие подключения
+(или двойной клик по `start.command` в этой папке в Finder).
+Если при двойном клике macOS пишет «“start.command” Not Opened / Apple could not verify…» — нажмите «Done»
+и выполните в Терминале `xattr -dr com.apple.quarantine ~/Downloads/Telegram-Bot-claude-exciting-lovelace-j1oloo`
+(права администратора не нужны). После первого запуска через `bash start.sh` это делается автоматически. Если спросит про входящие подключения
 для Python — «Разрешить». Появится QR‑код.
 
 **5. iPhone.** Тот же Wi‑Fi, что у Mac. Камера → QR‑код → жёлтая ссылка → откроется Safari.

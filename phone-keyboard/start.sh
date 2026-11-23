@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
+# macOS: снимаем «карантин» скачанных файлов (права администратора не нужны),
+# чтобы дальше start.command открывался двойным кликом без предупреждения
+if [ "$(uname)" = "Darwin" ]; then
+  xattr -dr com.apple.quarantine . 2>/dev/null || true
+fi
 if ! command -v python3 >/dev/null 2>&1 || ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null; then
   echo "Нужен Python 3.9 или новее. Скачайте его с https://www.python.org/downloads/ и запустите снова."
   read -r -p "Нажмите Enter для выхода..." _
