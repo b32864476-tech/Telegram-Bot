@@ -427,5 +427,26 @@ class Backend:
             self.mouse.scroll(sx, sy)
 
 
+def screen_locked():
+    """Заблокирован ли экран компьютера: True / False, None — если узнать нельзя.
+
+    На экране блокировки macOS принимает только настоящую клавиатуру, поэтому
+    телефон честно сообщает об этом, вместо того чтобы молча «не работать».
+    """
+    if OS != "mac":
+        return None
+    try:
+        import Quartz
+
+        d = Quartz.CGSessionCopyCurrentDictionary()
+        if not d:
+            return True  # нет графического сеанса (например, выбран другой пользователь)
+        if d.get("CGSSessionScreenIsLocked"):
+            return True
+        return not d.get(Quartz.kCGSessionOnConsoleKey, True)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def os_label() -> str:
     return f"{OS} ({platform.platform(terse=True)})"

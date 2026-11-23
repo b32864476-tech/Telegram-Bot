@@ -11,6 +11,7 @@ from pathlib import Path
 
 from aiohttp import WSMsgType, web
 
+from . import backend as backend_mod
 from .backend import LAYOUT_SWITCH, OS, Backend, check_mac_permissions, os_label
 
 log = logging.getLogger("keyboard")
@@ -119,7 +120,34 @@ class Session:
             self.b.mac.release_all()
 
 
+LOCK_POLL_SECONDS = 1.0
+
+
 def make_app(backend: Backend, token: str) -> web.Application:
+    sockets: set[web.WebSocketResponse] = set()
+    state = {"locked": None}
+
+    async def watch_lock(_app):
+        """Следим за блокировкой экрана и сообщаем всем подключённым телефонам."""
+        while True:
+            locked = backend_mod.screen_locked()
+            if locked != state["locked"]:
+                state["locked"] = locked
+                if locked is not None:
+                    log.info("🔒 экран заблокирован" if locked else "🔓 экран разблокирован")
+                for ws in list(sockets):
+                    try:
+                        await ws.send_json({"t": "lock", "locked": bool(locked)})
+                    except Exception:  # noqa: BLE001
+                        pass
+            await asyncio.sleep(LOCK_POLL_SECONDS)
+
+    async def start_watch(app):
+        app["lock_task"] = asyncio.create_task(watch_lock(app))
+
+    async def stop_watch(app):
+        app["lock_task"].cancel()
+
     async def index(_req):
         resp = web.FileResponse(STATIC / "index.html")
         resp.headers["Cache-Control"] = "no-cache"
@@ -134,6 +162,8 @@ def make_app(backend: Backend, token: str) -> web.Application:
         log.info("📱 подключился %s", peer)
         session = Session(backend)
         await ws.send_json({"t": "hello", "os": OS})
+        await ws.send_json({"t": "lock", "locked": bool(state["locked"])})
+        sockets.add(ws)
         try:
             async for msg in ws:
                 if msg.type != WSMsgType.TEXT:
@@ -149,6 +179,7 @@ def make_app(backend: Backend, token: str) -> web.Application:
                 except Exception as e:  # noqa: BLE001
                     log.warning("ошибка обработки %r: %s", msg.data[:200], e)
         finally:
+            sockets.discard(ws)
             session.release_all()
             log.info("📴 отключился %s", peer)
         return ws
@@ -157,6 +188,8 @@ def make_app(backend: Backend, token: str) -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/ws", ws_handler)
     app.router.add_static("/static", STATIC)
+    app.on_startup.append(start_watch)
+    app.on_cleanup.append(stop_watch)
     return app
 
 
