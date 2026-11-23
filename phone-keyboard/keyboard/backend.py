@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import platform
 import sys
+import time
 
 log = logging.getLogger("keyboard")
 
@@ -64,12 +65,87 @@ SPECIAL_KEYS: dict[str, str] = {
 # Псевдоклавиша «Mod»: Cmd на Mac, Ctrl на Windows/Linux
 MOD_ALIAS = {"Mod": "MetaLeft" if OS == "mac" else "ControlLeft"}
 
-# Комбинация переключения раскладки на компьютере
+# Комбинация переключения раскладки на компьютере (можно сменить в настройках на телефоне)
 LAYOUT_SWITCH = {
     "windows": ["MetaLeft", "Space"],
     "mac": ["ControlLeft", "Space"],
     "linux": ["MetaLeft", "Space"],
 }[OS]
+
+# Пикселей движения пальцев на одно деление колёсика (Windows/Linux)
+SCROLL_STEP_PX = 30
+# На Mac прокрутка попиксельная: во сколько раз экран прокручивается дальше, чем прошли пальцы
+MAC_SCROLL_GAIN = 2.5
+
+
+def check_mac_permissions() -> bool:
+    """Без «Универсального доступа» macOS молча выбрасывает нажатия — проверяем заранее."""
+    if OS != "mac":
+        return True
+    try:
+        import HIServices
+
+        trusted = HIServices.AXIsProcessTrustedWithOptions(
+            {HIServices.kAXTrustedCheckOptionPrompt: True}  # macOS сам покажет окно с настройкой
+        )
+    except Exception:  # noqa: BLE001
+        return True
+    if not trusted:
+        print(
+            "\n⚠️  macOS пока не разрешил управлять клавиатурой и мышью.\n"
+            "   Откройте «Системные настройки → Конфиденциальность и безопасность →\n"
+            "   Универсальный доступ» и включите переключатель у «Терминал»\n"
+            "   (нет в списке — нажмите «+» и добавьте Программы → Утилиты → Терминал).\n"
+            "   Затем закройте окно Терминала и запустите программу заново.\n"
+        )
+    return bool(trusted)
+
+
+class MacQuartz:
+    """Клики и прокрутка на macOS напрямую через Quartz.
+
+    - клики помнят серию, поэтому два тапа подряд — настоящий двойной клик;
+    - прокрутка попиксельная и плавная, как на трекпаде;
+    - к кликам добавляются зажатые модификаторы (⌘+клик, ⇧+клик).
+    """
+
+    def __init__(self):
+        import Quartz
+
+        self.Q = Quartz
+        self.last = (0.0, None, 0)  # время, кнопка, номер клика в серии
+
+    def _flags(self):
+        Q = self.Q
+        return Q.CGEventSourceFlagsState(Q.kCGEventSourceStateHIDSystemState)
+
+    def click(self, button: str, count: int):
+        Q = self.Q
+        kinds = {
+            "left": (Q.kCGEventLeftMouseDown, Q.kCGEventLeftMouseUp, Q.kCGMouseButtonLeft),
+            "right": (Q.kCGEventRightMouseDown, Q.kCGEventRightMouseUp, Q.kCGMouseButtonRight),
+            "middle": (Q.kCGEventOtherMouseDown, Q.kCGEventOtherMouseUp, Q.kCGMouseButtonCenter),
+        }
+        down, up, btn = kinds.get(button, kinds["left"])
+        pos = Q.CGEventGetLocation(Q.CGEventCreate(None))
+        flags = self._flags()
+        for _ in range(count):
+            now = time.monotonic()
+            t, b, n = self.last
+            state = n + 1 if (b == button and now - t < 0.5 and n < 3) else 1
+            for kind in (down, up):
+                ev = Q.CGEventCreateMouseEvent(None, kind, pos, btn)
+                Q.CGEventSetIntegerValueField(ev, Q.kCGMouseEventClickState, state)
+                Q.CGEventSetFlags(ev, flags)
+                Q.CGEventPost(Q.kCGHIDEventTap, ev)
+            self.last = (now, button, state)
+
+    def scroll(self, dx: int, dy: int):
+        Q = self.Q
+        # wheel1 > 0 — вверх; wheel2 > 0 — влево, поэтому dx меняет знак
+        ev = Q.CGEventCreateScrollWheelEvent(None, Q.kCGScrollEventUnitPixel, 2, int(dy), int(-dx))
+        Q.CGEventSetIntegerValueField(ev, Q.kCGScrollWheelEventIsContinuous, 1)
+        Q.CGEventPost(Q.kCGHIDEventTap, ev)
 
 
 class DryRun:
@@ -84,6 +160,8 @@ class DryRun:
 class Backend:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
+        self.mac = None
+        self._sx = self._sy = 0.0  # остаток прокрутки
         if dry_run:
             self.kb = self.mouse = DryRun()
             self._Key = self._KeyCode = self._Button = None
@@ -95,6 +173,7 @@ class Backend:
         self._Key = keyboard.Key
         self._KeyCode = keyboard.KeyCode
         self._Button = mouse.Button
+        self.mac = MacQuartz() if OS == "mac" else None
 
     # ---------- клавиатура ----------
     def resolve(self, code: str):
@@ -166,7 +245,11 @@ class Backend:
         self.mouse.move(int(round(dx)), int(round(dy)))
 
     def click(self, button: str = "left", count: int = 1):
-        self.mouse.click(self._btn(button), max(1, min(int(count), 3)))
+        count = max(1, min(int(count), 3))
+        if self.mac:
+            self.mac.click(button, count)
+        else:
+            self.mouse.click(self._btn(button), count)
 
     def mouse_down(self, button: str = "left"):
         self.mouse.press(self._btn(button))
@@ -174,8 +257,20 @@ class Backend:
     def mouse_up(self, button: str = "left"):
         self.mouse.release(self._btn(button))
 
-    def scroll(self, dx: int, dy: int):
-        self.mouse.scroll(int(dx), int(dy))
+    def scroll(self, dx: float, dy: float):
+        """Прокрутка в пикселях движения пальцев (dy > 0 — вверх, dx > 0 — вправо)."""
+        self._sx += dx
+        self._sy += dy
+        unit = 1 / MAC_SCROLL_GAIN if self.mac else SCROLL_STEP_PX
+        sx, sy = int(self._sx / unit), int(self._sy / unit)
+        if not (sx or sy):
+            return
+        self._sx -= sx * unit
+        self._sy -= sy * unit
+        if self.mac:
+            self.mac.scroll(sx, sy)
+        else:
+            self.mouse.scroll(sx, sy)
 
 
 def os_label() -> str:

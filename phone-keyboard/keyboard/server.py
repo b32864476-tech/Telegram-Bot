@@ -11,7 +11,7 @@ from pathlib import Path
 
 from aiohttp import WSMsgType, web
 
-from .backend import LAYOUT_SWITCH, OS, Backend, os_label
+from .backend import LAYOUT_SWITCH, OS, Backend, check_mac_permissions, os_label
 
 log = logging.getLogger("keyboard")
 STATIC = Path(__file__).parent / "static"
@@ -83,7 +83,8 @@ class Session:
         elif t == "text":
             b.type_text(str(m.get("s", ""))[:5000])
         elif t == "layout":
-            b.combo(LAYOUT_SWITCH)
+            keys = m.get("keys")
+            b.combo([str(k) for k in keys][:4] if isinstance(keys, list) and keys else LAYOUT_SWITCH)
         elif t == "move":
             b.move(float(m.get("dx", 0)), float(m.get("dy", 0)))
         elif t == "click":
@@ -97,7 +98,7 @@ class Session:
             b.mouse_up(btn)
             self.buttons.discard(btn)
         elif t == "scroll":
-            b.scroll(int(m.get("dx", 0)), int(m.get("dy", 0)))
+            b.scroll(float(m.get("dx", 0)), float(m.get("dy", 0)))
         elif t == "release":
             self.release_all()
 
@@ -170,6 +171,8 @@ def main():
         logging.getLogger(name).setLevel(logging.WARNING)
 
     backend = Backend(dry_run=args.dry_run)
+    if not args.dry_run:
+        check_mac_permissions()
     token = load_token(args.new_key)
     url = f"http://{lan_ip()}:{args.port}/?k={token}"
 

@@ -336,6 +336,16 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
     <div class="set"><span>Автоповтор при удержании</span><input type="checkbox" id="sRepeat"></div>
     <div class="set"><span>Русские буквы на клавишах</span><input type="checkbox" id="sRu"></div>
     <div class="set"><span>Автокоррекция iPhone (вкладка «Текст»)</span><input type="checkbox" id="sAutocorrect"></div>
+    <div class="set"><span>Смена раскладки 🌐</span>
+      <select id="sLayout">
+        <option value="auto">Стандартная (Mac: ⌃ Space, Win: Win+Space)</option>
+        <option value="ctrl-space">⌃ Control + Space</option>
+        <option value="ctrl-alt-space">⌃ Control + ⌥ Option + Space</option>
+        <option value="cmd-space">⌘ Cmd / Win + Space</option>
+        <option value="alt-shift">⌥ Option / Alt + Shift</option>
+        <option value="ctrl-shift">Ctrl + Shift</option>
+      </select>
+    </div>
     <div class="set"><span>Тема</span>
       <select id="sTheme"><option value="auto">Как в системе</option><option value="dark">Тёмная</option><option value="light">Светлая</option></select>
     </div>
@@ -356,7 +366,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 "use strict";
 
 /* ================== настройки ================== */
-const DEFAULTS = { sens: 1.6, scroll: 1, natural: true, haptic: true, repeat: true, ru: true, autocorrect: false, theme: "auto", view: "kb", live: true };
+const DEFAULTS = { sens: 1.6, scroll: 1, natural: true, haptic: true, repeat: true, ru: true, autocorrect: false, theme: "auto", view: "kb", live: true, layoutCombo: "auto" };
 const settings = Object.assign({}, DEFAULTS, load("pk.settings") || {});
 function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
@@ -371,7 +381,7 @@ if (token) save("pk.token", token); else token = load("pk.token");
 const statusEl = document.getElementById("status");
 const statusText = document.getElementById("statusText");
 const banner = document.getElementById("banner");
-let ws = null, osName = null, retry = 0, connectedOnce = false;
+let ws = null, osName = load("pk.os"), retry = 0, connectedOnce = false;
 
 function setStatus(state, text) {
   statusEl.className = "status " + state;
@@ -392,7 +402,7 @@ function connect() {
   ws.onopen = () => { retry = 0; connectedOnce = true; showBanner(""); };
   ws.onmessage = (e) => {
     let m; try { m = JSON.parse(e.data); } catch { return; }
-    if (m.t === "hello") { osName = m.os; applyOS(); setStatus("on", { windows: "Windows", mac: "Mac", linux: "Linux" }[osName] || "OK"); }
+    if (m.t === "hello") { const changed = osName !== m.os; osName = m.os; save("pk.os", osName); if (changed) applyOS(); setStatus("on", { windows: "Windows", mac: "Mac", linux: "Linux" }[osName] || "OK"); }
   };
   ws.onclose = () => { ws = null; resetLocalKeys(); setStatus("", "нет связи"); scheduleReconnect(); };
   ws.onerror = () => {};
@@ -452,10 +462,15 @@ const ROWS = [
   [W("ShiftLeft", "⇧ Shift", 2.25), L("KeyZ", "Z", "", "Я"), L("KeyX", "X", "", "Ч"), L("KeyC", "C", "", "С"), L("KeyV", "V", "", "М"),
    L("KeyB", "B", "", "И"), L("KeyN", "N", "", "Т"), L("KeyM", "M", "", "Ь"), L("Comma", ",", "<", "Б"), L("Period", ".", ">", "Ю"),
    L("Slash", "/", "?", "."), W("ShiftRight", "Shift ⇧", 2.75)],
-  [W("ControlLeft", "Ctrl", 1.5), W("MetaLeft", "Win", 1.25), W("AltLeft", "Alt", 1.25), L("Space", "", "", "", 5.75),
-   W("AltRight", "Alt", 1.25), W("Layout", "🌐", 1), W("ArrowLeft", "◀", 1),
-   { stack: [W("ArrowUp", "▲"), W("ArrowDown", "▼")] }, W("ArrowRight", "▶", 1)],
 ];
+const ARROWS = () => [W("ArrowLeft", "◀", 1), { stack: [W("ArrowUp", "▲"), W("ArrowDown", "▼")] }, W("ArrowRight", "▶", 1)];
+// Нижний ряд как на настоящей клавиатуре: у Mac — control, option, command
+const bottomRow = os => os === "mac"
+  ? [W("ControlLeft", "⌃ control", 1.25), W("AltLeft", "⌥ option", 1.25), W("MetaLeft", "⌘ command", 1.5), L("Space", "", "", "", 4.75),
+     W("MetaRight", "⌘ cmd", 1.25), W("AltRight", "⌥", 1), W("Layout", "🌐", 1), ...ARROWS()]
+  : [W("ControlLeft", "Ctrl", 1.5), W("MetaLeft", "⊞ Win", 1.25), W("AltLeft", "Alt", 1.25), L("Space", "", "", "", 5.75),
+     W("AltRight", "Alt", 1.25), W("Layout", "🌐", 1), ...ARROWS()];
+const MAC_LABELS = { Backspace: "⌫ delete", Enter: "return ⏎", CapsLock: "caps lock", Tab: "tab ⇥", ShiftLeft: "⇧ shift", ShiftRight: "shift ⇧", Delete: "⌦" };
 const MODS = new Set(["ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]);
 const NO_REPEAT = new Set([...MODS, "CapsLock", "Layout", "Escape", "NumLock", "ScrollLock", "AudioVolumeMute", "MediaPlayPause", "PrintScreen"]);
 
@@ -471,18 +486,25 @@ function keyEl(k) {
   return el;
 }
 const kb = document.getElementById("kb");
-ROWS.forEach((row, i) => {
-  const r = document.createElement("div");
-  r.className = "row" + (i === 0 ? " fnrow" : "");
-  for (const k of row) {
-    if (k.stack) {
-      const st = document.createElement("div"); st.className = "stack";
-      k.stack.forEach(s => st.appendChild(keyEl(s)));
-      r.appendChild(st);
-    } else r.appendChild(keyEl(k));
-  }
-  kb.appendChild(r);
-});
+function buildKeyboard() {
+  kb.innerHTML = "";
+  [...ROWS, bottomRow(osName)].forEach((row, i) => {
+    const r = document.createElement("div");
+    r.className = "row" + (i === 0 ? " fnrow" : "");
+    for (const k of row) {
+      if (k.stack) {
+        const st = document.createElement("div"); st.className = "stack";
+        k.stack.forEach(s => st.appendChild(keyEl(s)));
+        r.appendChild(st);
+      } else {
+        const el = keyEl(k);
+        if (osName === "mac" && MAC_LABELS[k.c]) el.querySelector(".m").textContent = MAC_LABELS[k.c];
+        r.appendChild(el);
+      }
+    }
+    kb.appendChild(r);
+  });
+}
 
 const fill = (id, keys) => { const box = document.getElementById(id); keys.forEach(k => box.appendChild(keyEl(k))); };
 fill("tkeys", [W("Escape", "Esc"), W("Tab", "Tab"), W("ArrowLeft", "◀"), W("ArrowUp", "▲"), W("ArrowDown", "▼"), W("ArrowRight", "▶"), W("Backspace", "⌫"), W("Enter", "⏎")]);
@@ -490,6 +512,15 @@ fill("media", [["AudioVolumeDown", "🔉"], ["AudioVolumeMute", "🔇"], ["Audio
 fill("nav", [W("Escape", "Esc"), W("Home", "Home"), W("End", "End"), W("PageUp", "PgUp"), W("PageDown", "PgDn"), W("Insert", "Ins"), W("Delete", "Del"),
   W("PrintScreen", "PrtSc"), W("ContextMenu", "Меню"), W("ArrowLeft", "◀"), W("ArrowUp", "▲"), W("ArrowDown", "▼"), W("ArrowRight", "▶")]);
 fill("fkeys", Array.from({ length: 12 }, (_, i) => W(`F${i + 1}`, `F${i + 1}`)));
+
+const LAYOUT_COMBOS = {
+  "ctrl-space": ["ControlLeft", "Space"], "ctrl-alt-space": ["ControlLeft", "AltLeft", "Space"],
+  "cmd-space": ["MetaLeft", "Space"], "alt-shift": ["AltLeft", "ShiftLeft"], "ctrl-shift": ["ControlLeft", "ShiftLeft"],
+};
+function sendLayout() {
+  const keys = LAYOUT_COMBOS[settings.layoutCombo];
+  send(keys ? { t: "layout", keys } : { t: "layout" });
+}
 
 /* ================== модификаторы ================== */
 // off → held (палец на клавише) → latched (на одно нажатие) → locked (закреплён)
@@ -531,7 +562,7 @@ function onKeyDown(e) {
   haptic();
   if (MODS.has(code)) { modDown(code); active.set(e.pointerId, { code, mod: true }); return; }
   if (code === "Layout") {
-    send({ t: "layout" });
+    sendLayout();
     el.classList.add("down"); setTimeout(() => el.classList.remove("down"), 120);
     return;
   }
@@ -579,12 +610,12 @@ function queueFlush() {
     rafPending = false;
     const dx = Math.trunc(acc.dx), dy = Math.trunc(acc.dy);
     if (dx || dy) { send({ t: "move", dx, dy }); acc.dx -= dx; acc.dy -= dy; }
-    const STEP = 22 / settings.scroll;
-    const sx = Math.trunc(acc.sx / STEP), sy = Math.trunc(acc.sy / STEP);
-    if (sx || sy) {
-      const k = settings.natural ? 1 : -1;
-      send({ t: "scroll", dx: -sx * k, dy: sy * k });
-      acc.sx -= sx * STEP; acc.sy -= sy * STEP;
+    if (Math.abs(acc.sx) >= 0.5 || Math.abs(acc.sy) >= 0.5) {
+      // пиксели движения пальцев; компьютер сам переводит их в плавную прокрутку
+      const k = (settings.natural ? 1 : -1) * settings.scroll;
+      const r = v => Math.round(v * 10) / 10;
+      send({ t: "scroll", dx: r(-acc.sx * k), dy: r(acc.sy * k) });
+      acc.sx = 0; acc.sy = 0;
     }
   });
 }
@@ -601,7 +632,7 @@ class Pad {
     this.el = el;
     el.innerHTML = `<div class="surface"></div>` +
       (el.dataset.scroller ? `<div class="scroller"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 9 5-5 5 5M7 15l5 5 5-5"/></svg></div>` : "") +
-      (el.dataset.hint ? `<div class="hint">1 палец — курсор · тап — клик · 2 пальца — прокрутка · тап двумя — правый клик · двойной тап и вести — перетащить</div>` : "");
+      (el.dataset.hint ? `<div class="hint">1 палец — курсор · тап — клик · двойной тап — двойной клик · 2 пальца — прокрутка · тап двумя — правый клик · двойной тап и вести — перетащить</div>` : "");
     this.surface = el.querySelector(".surface");
     this.scroller = el.querySelector(".scroller");
     this.pts = new Map();
@@ -628,10 +659,9 @@ class Pad {
     this.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (this.pts.size === 1) {
       this.g = { t0: now, max: 1, moved: 0 };
-      if (now - this.lastTap < 280) { // двойной тап с удержанием → перетаскивание
-        this.dragging = true; this.el.classList.add("dragging");
-        send({ t: "mdown", b: "left" });
-      }
+      // второй тап сразу после первого: повёл пальцем — перетаскивание, отпустил — двойной клик
+      this.dragPending = now - this.lastTap < 300;
+      this.lastTap = 0;
     } else if (this.g) {
       this.g.max = Math.max(this.g.max, this.pts.size);
     }
@@ -642,6 +672,10 @@ class Pad {
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
     this.g.moved += Math.abs(dx) + Math.abs(dy);
+    if (this.dragPending && this.pts.size === 1 && this.g.moved > 6) {
+      this.dragPending = false; this.dragging = true; this.el.classList.add("dragging");
+      send({ t: "mdown", b: "left" }); haptic();
+    }
     if (this.pts.size === 1) moveBy(dx, dy);
     else if (this.pts.size === 2) scrollBy(dx / 2, dy / 2); // каждый из двух пальцев даёт половину
   }
@@ -651,13 +685,14 @@ class Pad {
     if (this.pts.size > 0 || !this.g) return;
     const g = this.g; this.g = null;
     const quick = performance.now() - g.t0 < 260 && g.moved < 12;
+    const pending = this.dragPending; this.dragPending = false;
     if (this.dragging) {
       this.dragging = false; this.el.classList.remove("dragging");
-      send({ t: "mup", b: "left" }); // короткий второй тап = двойной клик
-      this.lastTap = 0;
+      send({ t: "mup", b: "left" });
       return;
     }
     if (cancelled || !quick) return;
+    if (pending && g.max === 1) { haptic(); click("left"); return; } // второй клик серии = двойной
     haptic();
     if (g.max === 1) { click("left"); this.lastTap = performance.now(); }
     else if (g.max === 2) click("right");
@@ -745,42 +780,56 @@ document.querySelectorAll("#tkeys .key").forEach(k => k.addEventListener("pointe
 }));
 
 /* ================== вкладка «Ещё» ================== */
+// [подпись, подпись на Mac (или null), комбинации по ОС]
 const ACTIONS = [
-  ["Копировать", "copy", { all: ["Mod", "KeyC"] }],
-  ["Вставить", "paste", { all: ["Mod", "KeyV"] }],
-  ["Вырезать", "cut", { all: ["Mod", "KeyX"] }],
-  ["Отменить", "undo", { all: ["Mod", "KeyZ"] }],
-  ["Повторить", "redo", { mac: ["Mod", "ShiftLeft", "KeyZ"], all: ["Mod", "KeyY"] }],
-  ["Выделить всё", "selall", { all: ["Mod", "KeyA"] }],
-  ["Сохранить", "save", { all: ["Mod", "KeyS"] }],
-  ["Найти", "find", { all: ["Mod", "KeyF"] }],
-  ["Переключить окно", "switch", { mac: ["MetaLeft", "Tab"], all: ["AltLeft", "Tab"] }],
-  ["Закрыть окно", "closewin", { mac: ["MetaLeft", "KeyQ"], all: ["AltLeft", "F4"] }],
-  ["Рабочий стол", "desktop", { mac: ["F11"], all: ["MetaLeft", "KeyD"] }],
-  ["Поиск", "search", { mac: ["MetaLeft", "Space"], windows: ["MetaLeft", "KeyS"], linux: ["MetaLeft"] }],
-  ["Скриншот", "shot", { mac: ["MetaLeft", "ShiftLeft", "Digit4"], windows: ["MetaLeft", "ShiftLeft", "KeyS"], linux: ["PrintScreen"] }],
-  ["Диспетчер задач", "taskmgr", { mac: ["MetaLeft", "AltLeft", "Escape"], windows: ["ControlLeft", "ShiftLeft", "Escape"] }],
-  ["Проводник", "explorer", { windows: ["MetaLeft", "KeyE"] }],
-  ["Меню Пуск", "start", { windows: ["MetaLeft"], linux: ["MetaLeft"] }],
-  ["Новая вкладка", "newtab", { all: ["Mod", "KeyT"] }],
-  ["Закрыть вкладку", "closetab", { all: ["Mod", "KeyW"] }],
-  ["Вернуть вкладку", "reopen", { all: ["Mod", "ShiftLeft", "KeyT"] }],
-  ["Обновить", "reload", { mac: ["Mod", "KeyR"], all: ["F5"] }],
-  ["Крупнее", "zin", { all: ["Mod", "Equal"] }],
-  ["Мельче", "zout", { all: ["Mod", "Minus"] }],
-  ["Раскладка", "layout", { special: "layout" }],
+  ["Копировать", null, { all: ["Mod", "KeyC"] }],
+  ["Вставить", null, { all: ["Mod", "KeyV"] }],
+  ["Вырезать", null, { all: ["Mod", "KeyX"] }],
+  ["Отменить", null, { all: ["Mod", "KeyZ"] }],
+  ["Повторить", null, { mac: ["Mod", "ShiftLeft", "KeyZ"], all: ["Mod", "KeyY"] }],
+  ["Выделить всё", null, { all: ["Mod", "KeyA"] }],
+  ["Сохранить", null, { all: ["Mod", "KeyS"] }],
+  ["Найти", null, { all: ["Mod", "KeyF"] }],
+  ["Поиск", "Spotlight", { mac: ["MetaLeft", "Space"], windows: ["MetaLeft", "KeyS"], linux: ["MetaLeft"] }],
+  ["Переключить окно", "Другая программа", { mac: ["MetaLeft", "Tab"], all: ["AltLeft", "Tab"] }],
+  ["Окна программы", null, { mac: ["MetaLeft", "Backquote"] }],
+  ["Mission Control", null, { mac: ["ControlLeft", "ArrowUp"] }],
+  ["Стол слева", null, { mac: ["ControlLeft", "ArrowLeft"], windows: ["MetaLeft", "ControlLeft", "ArrowLeft"] }],
+  ["Стол справа", null, { mac: ["ControlLeft", "ArrowRight"], windows: ["MetaLeft", "ControlLeft", "ArrowRight"] }],
+  ["Закрыть окно", null, { mac: ["MetaLeft", "KeyW"], all: ["AltLeft", "F4"] }],
+  ["Выйти из программы", null, { mac: ["MetaLeft", "KeyQ"] }],
+  ["Свернуть", null, { mac: ["MetaLeft", "KeyM"], windows: ["MetaLeft", "ArrowDown"] }],
+  ["Скрыть программу", null, { mac: ["MetaLeft", "KeyH"] }],
+  ["Полный экран", null, { mac: ["ControlLeft", "MetaLeft", "KeyF"], all: ["F11"] }],
+  ["Рабочий стол", null, { mac: ["F11"], all: ["MetaLeft", "KeyD"] }],
+  ["Скриншот", "Скриншот области", { mac: ["MetaLeft", "ShiftLeft", "Digit4"], windows: ["MetaLeft", "ShiftLeft", "KeyS"], linux: ["PrintScreen"] }],
+  ["Скриншот / запись", null, { mac: ["MetaLeft", "ShiftLeft", "Digit5"] }],
+  ["Диспетчер задач", "Завершить принуд.", { mac: ["MetaLeft", "AltLeft", "Escape"], windows: ["ControlLeft", "ShiftLeft", "Escape"] }],
+  ["Блокировка экрана", null, { mac: ["ControlLeft", "MetaLeft", "KeyQ"] }],
+  ["Проводник", null, { windows: ["MetaLeft", "KeyE"] }],
+  ["Меню Пуск", null, { windows: ["MetaLeft"], linux: ["MetaLeft"] }],
+  ["Настройки программы", null, { mac: ["MetaLeft", "Comma"] }],
+  ["Новая вкладка", null, { all: ["Mod", "KeyT"] }],
+  ["Закрыть вкладку", null, { all: ["Mod", "KeyW"] }],
+  ["Вернуть вкладку", null, { all: ["Mod", "ShiftLeft", "KeyT"] }],
+  ["Обновить", null, { mac: ["Mod", "KeyR"], all: ["F5"] }],
+  ["Крупнее", null, { all: ["Mod", "Equal"] }],
+  ["Мельче", null, { all: ["Mod", "Minus"] }],
+  ["Раскладка", null, { special: "layout" }],
 ];
 const KEYNAME = {
   Mod: () => osName === "mac" ? "⌘" : "Ctrl", MetaLeft: () => osName === "mac" ? "⌘" : "Win",
   AltLeft: () => osName === "mac" ? "⌥" : "Alt", ControlLeft: () => osName === "mac" ? "⌃" : "Ctrl",
   ShiftLeft: () => "Shift", Escape: () => "Esc", Space: () => "Space", PrintScreen: () => "PrtSc",
-  Equal: () => "+", Minus: () => "−", Tab: () => "Tab",
+  Equal: () => "+", Minus: () => "−", Tab: () => "Tab", Backquote: () => "`", Comma: () => ",",
+  ArrowUp: () => "↑", ArrowDown: () => "↓", ArrowLeft: () => "←", ArrowRight: () => "→",
 };
 const keyName = k => KEYNAME[k] ? KEYNAME[k]() : k.replace(/^Key|^Digit/, "");
 function renderActions() {
   const box = document.getElementById("actions");
   box.innerHTML = "";
-  for (const [label, id, def] of ACTIONS) {
+  for (const [winLabel, macLabel, def] of ACTIONS) {
+    const label = osName === "mac" && macLabel ? macLabel : winLabel;
     let combo = def.special ? null : (def[osName || "windows"] || def.all);
     if (!def.special && !combo) continue;
     const b = document.createElement("button");
@@ -790,7 +839,7 @@ function renderActions() {
     b.lastChild.textContent = def.special ? "🌐" : combo.map(keyName).join(" + ");
     b.addEventListener("click", () => {
       haptic();
-      if (def.special === "layout") send({ t: "layout" });
+      if (def.special === "layout") sendLayout();
       else send({ t: "combo", keys: combo });
       releaseLatched();
     });
@@ -801,12 +850,10 @@ function renderActions() {
 /* ================== подписи под ОС ================== */
 function applyOS() {
   const mac = osName === "mac";
-  const set = (code, text) => document.querySelectorAll(`.key[data-c="${code}"] .m`).forEach(m => m.textContent = text);
-  set("MetaLeft", mac ? "⌘ cmd" : "⊞ Win");
-  set("AltLeft", mac ? "⌥ opt" : "Alt");
-  set("AltRight", mac ? "⌥ opt" : "Alt");
-  set("ControlLeft", mac ? "⌃ ctrl" : "Ctrl");
-  set("Backspace", mac ? "⌫ delete" : "⌫");
+  buildKeyboard();
+  for (const c in mod) renderMod(c);
+  ["Insert", "PrintScreen", "ContextMenu"].forEach(c =>
+    document.querySelectorAll(`#nav .key[data-c="${c}"]`).forEach(el => el.style.display = mac ? "none" : ""));
   renderActions();
 }
 
@@ -839,12 +886,13 @@ bind("sSens", "sens", "value"); bind("sScroll", "scroll", "value");
 bind("sNatural", "natural"); bind("sHaptic", "haptic"); bind("sRepeat", "repeat");
 bind("sRu", "ru", "checked", applyRu); bind("sAutocorrect", "autocorrect", "checked", applyAutocorrect);
 bind("sTheme", "theme", "value", applyTheme);
+bind("sLayout", "layoutCombo", "value");
 document.getElementById("openSettings").addEventListener("click", () => { dlg.showModal(); });
 document.getElementById("closeSettings").addEventListener("click", () => dlg.close());
 dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
 
 /* ================== старт ================== */
-applyTheme(); applyRu(); applyLive(); applyAutocorrect(); renderActions();
+applyTheme(); applyRu(); applyLive(); applyAutocorrect(); applyOS();
 showView(["kb", "text", "pad", "more"].includes(settings.view) && settings.view !== "text" ? settings.view : "kb");
 document.addEventListener("gesturestart", e => e.preventDefault()); // без зума щипком
 connect();
