@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Клавиатура">
+<meta name="theme-color" content="#111214">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="icon" href="/static/icon-192.png">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<title>ПК Клавиатура</title>
+<style>
+:root {
+  --bg: #0f1012;
+  --panel: #18191c;
+  --line: #2a2c31;
+  --key: #2b2d32;
+  --key-hi: #34373d;
+  --mod: #1f2125;
+  --mod-hi: #26282d;
+  --text: #f2f3f5;
+  --sub: #8c919b;
+  --ru: #6fb3ff;
+  --accent: #3d8bff;
+  --accent-text: #ffffff;
+  --ok: #34c759;
+  --bad: #ff453a;
+  --warn: #ffb020;
+  --shadow: 0 1px 0 rgba(0,0,0,.55);
+  --pad: #16171a;
+  --pad-dot: rgba(255,255,255,.05);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #d1d4da;
+    --panel: #e6e8ec;
+    --line: #c3c7ce;
+    --key: #ffffff;
+    --key-hi: #ffffff;
+    --mod: #aeb3bc;
+    --mod-hi: #b9bec6;
+    --text: #111214;
+    --sub: #5b616b;
+    --ru: #1f6fe0;
+    --shadow: 0 1px 0 rgba(0,0,0,.28);
+    --pad: #e9ebef;
+    --pad-dot: rgba(0,0,0,.06);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #d1d4da; --panel: #e6e8ec; --line: #c3c7ce; --key: #fff; --key-hi: #fff;
+  --mod: #aeb3bc; --mod-hi: #b9bec6; --text: #111214; --sub: #5b616b; --ru: #1f6fe0;
+  --shadow: 0 1px 0 rgba(0,0,0,.28); --pad: #e9ebef; --pad-dot: rgba(0,0,0,.06);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.25 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  display: flex; flex-direction: column;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+}
+button { font: inherit; color: inherit; }
+
+/* ---------- верхняя панель ---------- */
+header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 0;
+  flex: 0 0 auto;
+}
+.tabs {
+  flex: 1; display: flex; gap: 2px; padding: 2px;
+  background: var(--panel); border-radius: 10px; min-width: 0;
+}
+.tab {
+  flex: 1; border: 0; background: transparent; border-radius: 8px;
+  height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--sub); min-width: 0;
+}
+.tab svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.tab span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab[aria-selected="true"] { background: var(--key); color: var(--text); box-shadow: var(--shadow); }
+.iconbtn {
+  border: 0; background: var(--panel); border-radius: 10px; width: 36px; height: 36px;
+  display: grid; place-items: center; color: var(--sub); flex: 0 0 auto;
+}
+.iconbtn svg { width: 20px; height: 20px; }
+.status {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub);
+  background: var(--panel); border-radius: 10px; height: 36px; padding: 0 10px; flex: 0 0 auto;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+.status.on .dot { background: var(--ok); }
+.status.wait .dot { background: var(--warn); }
+
+.banner {
+  display: none; margin: 0 0 6px; padding: 8px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--bad) 18%, var(--panel)); font-size: 13px;
+}
+.banner.show { display: block; }
+
+main { flex: 1; min-height: 0; position: relative; }
+.view { position: absolute; inset: 0; display: none; flex-direction: column; gap: 6px; }
+.view.active { display: flex; }
+
+/* ---------- клавиатура ---------- */
+.kb { display: flex; flex-direction: column; gap: 5px; flex: 1; min-height: 0; touch-action: none; }
+.kb .row { display: flex; gap: 5px; flex: 1 1 0; min-height: 0; }
+.kb .row.fnrow { flex: .72 1 0; }
+.key {
+  flex: var(--w, 1) 1 0; min-width: 0; position: relative;
+  background: var(--key); border-radius: 7px; box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center;
+  font-size: min(2.7vw, 4.4vh, 19px); font-weight: 500;
+  touch-action: none; overflow: hidden;
+  transition: background .06s;
+}
+.key.mod, .key.fn { background: var(--mod); }
+.key .m { pointer-events: none; }
+.key .s { position: absolute; left: 12%; top: 8%; font-size: .62em; color: var(--sub); pointer-events: none; }
+.key .r { position: absolute; right: 11%; bottom: 7%; font-size: .62em; color: var(--ru); font-weight: 600; pointer-events: none; }
+.key.word .m { white-space: nowrap; font-size: .74em; font-weight: 600; letter-spacing: .01em; }
+.key.fn .m { font-size: .7em; color: var(--sub); }
+.hide-ru .key .r { display: none; }
+.key.emoji .m { font-size: 1.35em; }
+.tkeys .key.word .m, .grid .key.word .m { font-size: .85em; }
+.key.down { background: var(--accent) !important; color: var(--accent-text); transform: translateY(1px); box-shadow: none; }
+.key.down .s, .key.down .r, .key.down.fn .m { color: var(--accent-text); }
+.key.latched { background: color-mix(in srgb, var(--accent) 45%, var(--mod)); color: var(--text); }
+.key.locked { background: var(--accent); color: var(--accent-text); }
+.key.locked::after {
+  content: ""; position: absolute; left: 50%; bottom: 5px; width: 14px; height: 3px; margin-left: -7px;
+  border-radius: 2px; background: currentColor;
+}
+.stack { flex: 1 1 0; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.stack .key { flex: 1 1 0; font-size: min(2.2vw, 3.4vh, 15px); }
+
+#v-kb .kb-pad { display: none; }
+@media (max-aspect-ratio: 1/1) {
+  #v-kb .kb-pad { display: flex; flex: 1 1 0; min-height: 90px; }
+  #v-kb .kb { flex: 0 0 auto; height: min(52vh, 380px); gap: 4px; }
+  #v-kb .kb .row { gap: 3px; }
+  .key { border-radius: 5px; font-size: min(3.6vw, 17px); }
+  .key.word .m { font-size: .62em; }
+  .key .s { left: 6%; top: 4%; }
+  .key .r { right: 6%; bottom: 3%; }
+  .tab span { display: none; }
+}
+@media (min-aspect-ratio: 1/1) and (max-height: 500px) {
+  header { padding: 4px 0; }
+  .tab { height: 28px; }
+  .iconbtn, .status { height: 32px; }
+  .iconbtn { width: 32px; }
+}
+
+/* ---------- тачпад ---------- */
+.pad {
+  position: relative; flex: 1; min-height: 0; border-radius: 14px;
+  background-color: var(--pad);
+  background-image: radial-gradient(var(--pad-dot) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+  border: 1px solid var(--line);
+  touch-action: none; overflow: hidden; display: flex;
+}
+.pad .surface { flex: 1; position: relative; }
+.pad .hint {
+  position: absolute; left: 0; right: 0; bottom: 10px; text-align: center;
+  font-size: 12px; color: var(--sub); opacity: .75; pointer-events: none; padding: 0 12px;
+}
+.pad .scroller {
+  width: 40px; border-left: 1px dashed var(--line); position: relative;
+  display: flex; align-items: center; justify-content: center; color: var(--sub);
+}
+.pad .scroller svg { width: 16px; height: 16px; opacity: .6; pointer-events: none; }
+.pad.dragging { border-color: var(--accent); }
+.touchdot {
+  position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 35%, transparent); pointer-events: none;
+}
+.mbtns { display: flex; gap: 6px; flex: 0 0 auto; height: 58px; touch-action: none; }
+.mbtns.small { height: 40px; }
+.mbtn {
+  flex: 1; border: 0; border-radius: 12px; background: var(--key); box-shadow: var(--shadow);
+  font-weight: 600; font-size: 14px; color: var(--sub); touch-action: none;
+}
+.mbtn.mid { flex: .55; }
+.mbtn.down { background: var(--accent); color: var(--accent-text); }
+
+/* ---------- текст ---------- */
+.textwrap { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.tkeys { display: flex; gap: 5px; height: 44px; flex: 0 0 auto; touch-action: none; }
+.tkeys .key { font-size: 15px; }
+textarea {
+  flex: 1; min-height: 80px; width: 100%; resize: none;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px; font: 17px/1.35 -apple-system, system-ui, sans-serif; outline: none;
+  -webkit-user-select: text; user-select: text;
+}
+textarea:focus { border-color: var(--accent); }
+.trow { display: flex; gap: 6px; align-items: center; flex: 0 0 auto; flex-wrap: wrap; }
+.pill {
+  border: 0; border-radius: 10px; background: var(--key); box-shadow: var(--shadow);
+  height: 40px; padding: 0 14px; font-weight: 600; font-size: 14px;
+}
+.pill.primary { background: var(--accent); color: var(--accent-text); }
+.pill:active { opacity: .7; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--sub); padding: 0 4px; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.grow { flex: 1; }
+
+/* ---------- ещё ---------- */
+.more { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; }
+.more h3 { margin: 10px 2px 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--sub); font-weight: 700; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.grid.keysgrid { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); touch-action: none; }
+.grid .key { height: 48px; font-size: 15px; flex: none; }
+.act {
+  border: 0; border-radius: 10px; background: var(--key); box-shadow: var(--shadow);
+  min-height: 54px; padding: 6px 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 13px; font-weight: 600; text-align: center;
+}
+.act small { font-size: 10.5px; color: var(--sub); font-weight: 500; }
+.act:active, .act.flash { background: var(--accent); color: var(--accent-text); }
+.act:active small, .act.flash small { color: var(--accent-text); }
+
+/* ---------- настройки ---------- */
+dialog {
+  border: 0; border-radius: 18px; padding: 0; width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 40px); background: var(--panel); color: var(--text);
+}
+dialog::backdrop { background: rgba(0,0,0,.5); }
+.sheet { padding: 16px 18px 18px; overflow-y: auto; max-height: calc(100dvh - 40px); }
+.sheet h2 { margin: 0 0 12px; font-size: 18px; }
+.set { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.set:last-of-type { border-bottom: 0; }
+.set input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
+.set input[type="range"] { width: 48%; accent-color: var(--accent); }
+.set select { font: inherit; background: var(--key); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.note { font-size: 12.5px; color: var(--sub); margin: 12px 0 0; line-height: 1.4; }
+.sheet .pill { width: 100%; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="kb" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M7.5 14h9"/></svg>
+      <span>Клавиатура</span>
+    </button>
+    <button class="tab" role="tab" data-view="text" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5h12v2M10 5v14M7.5 19h5M15 12h5M17.5 12v7"/></svg>
+      <span>Текст</span>
+    </button>
+    <button class="tab" role="tab" data-view="pad" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 3v6M6 9h12"/></svg>
+      <span>Тачпад</span>
+    </button>
+    <button class="tab" role="tab" data-view="more" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 2 4.5 13.5H12L11 22l8.5-11.5H12L13 2Z"/></svg>
+      <span>Ещё</span>
+    </button>
+  </nav>
+  <div class="status wait" id="status"><i class="dot"></i><span id="statusText">…</span></div>
+  <button class="iconbtn" id="openSettings" aria-label="Настройки">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+  </button>
+</header>
+
+<div class="banner" id="banner"></div>
+
+<main>
+  <!-- Клавиатура -->
+  <section class="view active" id="v-kb">
+    <div class="pad kb-pad" data-pad></div>
+    <div class="kb keyzone" id="kb"></div>
+  </section>
+
+  <!-- Текст через клавиатуру iPhone -->
+  <section class="view" id="v-text">
+    <div class="textwrap">
+      <div class="tkeys keyzone" id="tkeys"></div>
+      <textarea id="ta" rows="3" placeholder="Печатайте здесь клавиатурой iPhone — на любом языке, с диктовкой и эмодзи. Текст сразу появляется на компьютере."
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send"></textarea>
+      <div class="trow">
+        <label class="check"><input type="checkbox" id="live" checked> Печатать сразу</label>
+        <span class="grow"></span>
+        <label class="check" id="enterAfterWrap" hidden><input type="checkbox" id="enterAfter"> + Enter</label>
+        <button class="pill" id="clearText">Очистить</button>
+        <button class="pill primary" id="sendText" hidden>Отправить</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Тачпад -->
+  <section class="view" id="v-pad">
+    <div class="pad" data-pad data-scroller="1" data-hint="1"></div>
+    <div class="mbtns">
+      <button class="mbtn" data-btn="left">Левая</button>
+      <button class="mbtn mid" data-btn="middle">Средняя</button>
+      <button class="mbtn" data-btn="right">Правая</button>
+    </div>
+  </section>
+
+  <!-- Ещё -->
+  <section class="view more" id="v-more">
+    <h3>Сочетания</h3>
+    <div class="grid" id="actions"></div>
+    <h3>Мультимедиа</h3>
+    <div class="grid keysgrid keyzone" id="media"></div>
+    <h3>Навигация</h3>
+    <div class="grid keysgrid keyzone" id="nav"></div>
+    <h3>Функциональные</h3>
+    <div class="grid keysgrid keyzone" id="fkeys"></div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <div class="sheet">
+    <h2>Настройки</h2>
+    <div class="set"><span>Скорость курсора</span><input type="range" id="sSens" min="0.4" max="4" step="0.1"></div>
+    <div class="set"><span>Скорость прокрутки</span><input type="range" id="sScroll" min="0.3" max="3" step="0.1"></div>
+    <div class="set"><span>Естественная прокрутка</span><input type="checkbox" id="sNatural"></div>
+    <div class="set"><span>Вибрация при нажатии</span><input type="checkbox" id="sHaptic"></div>
+    <div class="set"><span>Автоповтор при удержании</span><input type="checkbox" id="sRepeat"></div>
+    <div class="set"><span>Русские буквы на клавишах</span><input type="checkbox" id="sRu"></div>
+    <div class="set"><span>Автокоррекция iPhone (вкладка «Текст»)</span><input type="checkbox" id="sAutocorrect"></div>
+    <div class="set"><span>Тема</span>
+      <select id="sTheme"><option value="auto">Как в системе</option><option value="dark">Тёмная</option><option value="light">Светлая</option></select>
+    </div>
+    <p class="note">
+      <b>Модификаторы</b> (Shift, Ctrl, Alt, Win/⌘): одно касание — сработает для следующей клавиши,
+      двойное — закрепится, ещё касание — отпустится. Можно и просто держать пальцем, как на настоящей клавиатуре.<br>
+      <b>🌐</b> переключает раскладку на компьютере. Буквы нажимаются по положению клавиш, поэтому
+      текст печатается в той раскладке, что выбрана на компьютере.<br>
+      <b>Тачпад:</b> тап — клик, тап двумя пальцами — правый клик, два пальца — прокрутка,
+      двойной тап с удержанием — перетаскивание.
+    </p>
+    <button class="pill primary" id="closeSettings">Готово</button>
+  </div>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+
+/* ================== настройки ================== */
+const DEFAULTS = { sens: 1.6, scroll: 1, natural: true, haptic: true, repeat: true, ru: true, autocorrect: false, theme: "auto", view: "kb", live: true };
+const settings = Object.assign({}, DEFAULTS, load("pk.settings") || {});
+function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function saveSettings() { save("pk.settings", settings); }
+
+/* ================== ключ доступа ================== */
+const params = new URLSearchParams(location.search);
+let token = params.get("k");
+if (token) save("pk.token", token); else token = load("pk.token");
+
+/* ================== связь ================== */
+const statusEl = document.getElementById("status");
+const statusText = document.getElementById("statusText");
+const banner = document.getElementById("banner");
+let ws = null, osName = null, retry = 0, connectedOnce = false;
+
+function setStatus(state, text) {
+  statusEl.className = "status " + state;
+  statusText.textContent = text;
+}
+function showBanner(text) { banner.textContent = text; banner.classList.toggle("show", !!text); }
+
+function connect() {
+  if (!token) {
+    setStatus("", "нет ключа");
+    showBanner("Откройте ссылку из окна программы на компьютере (отсканируйте QR-код камерой iPhone).");
+    return;
+  }
+  setStatus("wait", "связь…");
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  try { ws = new WebSocket(`${proto}://${location.host}/ws?k=${encodeURIComponent(token)}`); }
+  catch { scheduleReconnect(); return; }
+  ws.onopen = () => { retry = 0; connectedOnce = true; showBanner(""); };
+  ws.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch { return; }
+    if (m.t === "hello") { osName = m.os; applyOS(); setStatus("on", { windows: "Windows", mac: "Mac", linux: "Linux" }[osName] || "OK"); }
+  };
+  ws.onclose = () => { ws = null; resetLocalKeys(); setStatus("", "нет связи"); scheduleReconnect(); };
+  ws.onerror = () => {};
+}
+function scheduleReconnect() {
+  retry++;
+  if (retry === 3) {
+    fetch(`/ws?k=${encodeURIComponent(token)}`, { cache: "no-store" }).then(r => {
+      if (r.status === 403) showBanner("Неверный ключ. Отсканируйте QR-код из окна программы на компьютере заново.");
+      else showBanner("Нет связи с компьютером. Проверьте, что программа запущена и телефон в той же сети Wi‑Fi.");
+    }).catch(() => showBanner("Компьютер не отвечает. Проверьте, что программа запущена и телефон в той же сети Wi‑Fi."));
+  }
+  setTimeout(connect, Math.min(4000, 300 * retry));
+}
+function send(m) {
+  if (ws && ws.readyState === 1) { ws.send(JSON.stringify(m)); return true; }
+  return false;
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { send({ t: "release" }); resetLocalKeys(); }
+  else { requestWakeLock(); if (!ws) { retry = 0; connect(); } }
+});
+
+/* ================== вибрация (iOS 18+) ================== */
+const hapticLabel = document.createElement("label");
+const hapticInput = document.createElement("input");
+hapticInput.type = "checkbox"; hapticInput.setAttribute("switch", "");
+hapticLabel.style.display = "none"; hapticLabel.setAttribute("aria-hidden", "true");
+hapticLabel.appendChild(hapticInput); document.body.appendChild(hapticLabel);
+function haptic() {
+  if (!settings.haptic) return;
+  try { if (navigator.vibrate) navigator.vibrate(8); else hapticLabel.click(); } catch {}
+}
+
+/* ================== экран не гаснет ================== */
+let wakeLock = null;
+async function requestWakeLock() {
+  try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch {}
+}
+document.addEventListener("pointerdown", requestWakeLock, { once: true });
+
+/* ================== раскладка клавиатуры ================== */
+// [code, главная подпись, подпись с Shift, русская буква, ширина, класс]
+const L = (c, m, s = "", r = "", w = 1, cls = "") => ({ c, m, s, r, w, cls });
+const W = (c, m, w = 1, cls = "mod word") => ({ c, m, w, cls });
+const ROWS = [
+  [W("Escape", "Esc", 1.25, "fn word"), ...Array.from({ length: 12 }, (_, i) => W(`F${i + 1}`, `F${i + 1}`, 1, "fn word")), W("Delete", "Del", 1.25, "fn word")],
+  [L("Backquote", "`", "~", "Ё"), L("Digit1", "1", "!"), L("Digit2", "2", "@", "\""), L("Digit3", "3", "#", "№"), L("Digit4", "4", "$", ";"),
+   L("Digit5", "5", "%"), L("Digit6", "6", "^", ":"), L("Digit7", "7", "&", "?"), L("Digit8", "8", "*"), L("Digit9", "9", "("),
+   L("Digit0", "0", ")"), L("Minus", "-", "_"), L("Equal", "=", "+"), W("Backspace", "⌫", 2)],
+  [W("Tab", "Tab ⇥", 1.5), L("KeyQ", "Q", "", "Й"), L("KeyW", "W", "", "Ц"), L("KeyE", "E", "", "У"), L("KeyR", "R", "", "К"),
+   L("KeyT", "T", "", "Е"), L("KeyY", "Y", "", "Н"), L("KeyU", "U", "", "Г"), L("KeyI", "I", "", "Ш"), L("KeyO", "O", "", "Щ"),
+   L("KeyP", "P", "", "З"), L("BracketLeft", "[", "{", "Х"), L("BracketRight", "]", "}", "Ъ"), L("Backslash", "\\", "|", "", 1.5)],
+  [W("CapsLock", "Caps", 1.75), L("KeyA", "A", "", "Ф"), L("KeyS", "S", "", "Ы"), L("KeyD", "D", "", "В"), L("KeyF", "F", "", "А"),
+   L("KeyG", "G", "", "П"), L("KeyH", "H", "", "Р"), L("KeyJ", "J", "", "О"), L("KeyK", "K", "", "Л"), L("KeyL", "L", "", "Д"),
+   L("Semicolon", ";", ":", "Ж"), L("Quote", "'", "\"", "Э"), W("Enter", "Enter ⏎", 2.25)],
+  [W("ShiftLeft", "⇧ Shift", 2.25), L("KeyZ", "Z", "", "Я"), L("KeyX", "X", "", "Ч"), L("KeyC", "C", "", "С"), L("KeyV", "V", "", "М"),
+   L("KeyB", "B", "", "И"), L("KeyN", "N", "", "Т"), L("KeyM", "M", "", "Ь"), L("Comma", ",", "<", "Б"), L("Period", ".", ">", "Ю"),
+   L("Slash", "/", "?", "."), W("ShiftRight", "Shift ⇧", 2.75)],
+  [W("ControlLeft", "Ctrl", 1.5), W("MetaLeft", "Win", 1.25), W("AltLeft", "Alt", 1.25), L("Space", "", "", "", 5.75),
+   W("AltRight", "Alt", 1.25), W("Layout", "🌐", 1), W("ArrowLeft", "◀", 1),
+   { stack: [W("ArrowUp", "▲"), W("ArrowDown", "▼")] }, W("ArrowRight", "▶", 1)],
+];
+const MODS = new Set(["ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]);
+const NO_REPEAT = new Set([...MODS, "CapsLock", "Layout", "Escape", "NumLock", "ScrollLock", "AudioVolumeMute", "MediaPlayPause", "PrintScreen"]);
+
+function keyEl(k) {
+  const el = document.createElement("div");
+  el.className = "key " + (k.cls || "");
+  el.dataset.c = k.c;
+  el.style.setProperty("--w", k.w || 1);
+  el.innerHTML = `<span class="m"></span>` + (k.s ? `<span class="s"></span>` : "") + (k.r ? `<span class="r"></span>` : "");
+  el.querySelector(".m").textContent = k.m;
+  if (k.s) el.querySelector(".s").textContent = k.s;
+  if (k.r) el.querySelector(".r").textContent = k.r;
+  return el;
+}
+const kb = document.getElementById("kb");
+ROWS.forEach((row, i) => {
+  const r = document.createElement("div");
+  r.className = "row" + (i === 0 ? " fnrow" : "");
+  for (const k of row) {
+    if (k.stack) {
+      const st = document.createElement("div"); st.className = "stack";
+      k.stack.forEach(s => st.appendChild(keyEl(s)));
+      r.appendChild(st);
+    } else r.appendChild(keyEl(k));
+  }
+  kb.appendChild(r);
+});
+
+const fill = (id, keys) => { const box = document.getElementById(id); keys.forEach(k => box.appendChild(keyEl(k))); };
+fill("tkeys", [W("Escape", "Esc"), W("Tab", "Tab"), W("ArrowLeft", "◀"), W("ArrowUp", "▲"), W("ArrowDown", "▼"), W("ArrowRight", "▶"), W("Backspace", "⌫"), W("Enter", "⏎")]);
+fill("media", [["AudioVolumeDown", "🔉"], ["AudioVolumeMute", "🔇"], ["AudioVolumeUp", "🔊"], ["MediaTrackPrevious", "⏮"], ["MediaPlayPause", "⏯"], ["MediaTrackNext", "⏭"]].map(([c, m]) => W(c, m, 1, "mod emoji")));
+fill("nav", [W("Escape", "Esc"), W("Home", "Home"), W("End", "End"), W("PageUp", "PgUp"), W("PageDown", "PgDn"), W("Insert", "Ins"), W("Delete", "Del"),
+  W("PrintScreen", "PrtSc"), W("ContextMenu", "Меню"), W("ArrowLeft", "◀"), W("ArrowUp", "▲"), W("ArrowDown", "▼"), W("ArrowRight", "▶")]);
+fill("fkeys", Array.from({ length: 12 }, (_, i) => W(`F${i + 1}`, `F${i + 1}`)));
+
+/* ================== модификаторы ================== */
+// off → held (палец на клавише) → latched (на одно нажатие) → locked (закреплён)
+const mod = {};
+function renderMod(code) {
+  const s = mod[code]?.s || "off";
+  document.querySelectorAll(`.key[data-c="${code}"]`).forEach(el => {
+    el.classList.toggle("latched", s === "latched");
+    el.classList.toggle("locked", s === "locked");
+    el.classList.toggle("down", s === "held");
+  });
+}
+function modDown(code) {
+  const m = mod[code] || (mod[code] = { s: "off", used: false });
+  if (m.s === "off") { send({ t: "down", k: code }); m.s = "held"; m.used = false; }
+  else if (m.s === "latched") m.s = "locked";
+  else if (m.s === "locked") { send({ t: "up", k: code }); m.s = "off"; }
+  renderMod(code);
+}
+function modUp(code) {
+  const m = mod[code];
+  if (m && m.s === "held") {
+    if (m.used) { send({ t: "up", k: code }); m.s = "off"; } else m.s = "latched";
+  }
+  renderMod(code);
+}
+function markModsUsed() { for (const c in mod) if (mod[c].s === "held") mod[c].used = true; }
+function releaseLatched() {
+  for (const c in mod) if (mod[c].s === "latched") { send({ t: "up", k: c }); mod[c].s = "off"; renderMod(c); }
+}
+
+/* ================== нажатия клавиш ================== */
+const active = new Map(); // pointerId -> запись
+function onKeyDown(e) {
+  const el = e.target.closest(".key");
+  if (!el) return;
+  e.preventDefault();
+  const code = el.dataset.c;
+  haptic();
+  if (MODS.has(code)) { modDown(code); active.set(e.pointerId, { code, mod: true }); return; }
+  if (code === "Layout") {
+    send({ t: "layout" });
+    el.classList.add("down"); setTimeout(() => el.classList.remove("down"), 120);
+    return;
+  }
+  el.classList.add("down");
+  send({ t: "down", k: code });
+  markModsUsed();
+  const rec = { code, el, timer: 0 };
+  if (settings.repeat && !NO_REPEAT.has(code)) {
+    const rep = () => { send({ t: "down", k: code }); rec.timer = setTimeout(rep, 45); };
+    rec.timer = setTimeout(rep, 420);
+  }
+  active.set(e.pointerId, rec);
+}
+function onKeyUp(e) {
+  const rec = active.get(e.pointerId);
+  if (!rec) return;
+  active.delete(e.pointerId);
+  if (rec.mod) { modUp(rec.code); return; }
+  clearTimeout(rec.timer);
+  rec.el.classList.remove("down");
+  send({ t: "up", k: rec.code });
+  releaseLatched();
+}
+document.querySelectorAll(".keyzone").forEach(z => {
+  z.addEventListener("pointerdown", onKeyDown);
+  z.addEventListener("contextmenu", e => e.preventDefault());
+});
+window.addEventListener("pointerup", onKeyUp);
+window.addEventListener("pointercancel", onKeyUp);
+
+function resetLocalKeys() {
+  for (const rec of active.values()) { clearTimeout(rec.timer); rec.el?.classList.remove("down"); }
+  active.clear();
+  for (const c in mod) { mod[c].s = "off"; renderMod(c); }
+  document.querySelectorAll(".mbtn.down").forEach(b => b.classList.remove("down"));
+}
+
+/* ================== мышь ================== */
+const acc = { dx: 0, dy: 0, sx: 0, sy: 0 };
+let rafPending = false;
+function queueFlush() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    const dx = Math.trunc(acc.dx), dy = Math.trunc(acc.dy);
+    if (dx || dy) { send({ t: "move", dx, dy }); acc.dx -= dx; acc.dy -= dy; }
+    const STEP = 22 / settings.scroll;
+    const sx = Math.trunc(acc.sx / STEP), sy = Math.trunc(acc.sy / STEP);
+    if (sx || sy) {
+      const k = settings.natural ? 1 : -1;
+      send({ t: "scroll", dx: -sx * k, dy: sy * k });
+      acc.sx -= sx * STEP; acc.sy -= sy * STEP;
+    }
+  });
+}
+function moveBy(dx, dy) {
+  const v = Math.hypot(dx, dy);
+  const f = settings.sens * (1 + Math.min(v, 40) / 14); // ускорение: быстро — дальше
+  acc.dx += dx * f; acc.dy += dy * f; queueFlush();
+}
+function scrollBy(dx, dy) { acc.sx += dx; acc.sy += dy; queueFlush(); }
+function click(b = "left", n = 1) { send({ t: "click", b, n }); markModsUsed(); releaseLatched(); }
+
+class Pad {
+  constructor(el) {
+    this.el = el;
+    el.innerHTML = `<div class="surface"></div>` +
+      (el.dataset.scroller ? `<div class="scroller"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 9 5-5 5 5M7 15l5 5 5-5"/></svg></div>` : "") +
+      (el.dataset.hint ? `<div class="hint">1 палец — курсор · тап — клик · 2 пальца — прокрутка · тап двумя — правый клик · двойной тап и вести — перетащить</div>` : "");
+    this.surface = el.querySelector(".surface");
+    this.scroller = el.querySelector(".scroller");
+    this.pts = new Map();
+    this.g = null; // текущий жест
+    this.lastTap = 0;
+    this.dragging = false;
+    this.surface.addEventListener("pointerdown", e => this.down(e));
+    this.surface.addEventListener("pointermove", e => this.move(e));
+    this.surface.addEventListener("pointerup", e => this.up(e));
+    this.surface.addEventListener("pointercancel", e => this.up(e, true));
+    if (this.scroller) {
+      let sy = null, sx = null;
+      this.scroller.addEventListener("pointerdown", e => { e.preventDefault(); sy = e.clientY; sx = e.clientX; this.scroller.setPointerCapture(e.pointerId); });
+      this.scroller.addEventListener("pointermove", e => { if (sy === null) return; scrollBy(0, (e.clientY - sy) * 1.4); sy = e.clientY; sx = e.clientX; });
+      const end = () => { sy = null; };
+      this.scroller.addEventListener("pointerup", end);
+      this.scroller.addEventListener("pointercancel", end);
+    }
+  }
+  down(e) {
+    e.preventDefault();
+    this.surface.setPointerCapture(e.pointerId);
+    const now = performance.now();
+    this.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (this.pts.size === 1) {
+      this.g = { t0: now, max: 1, moved: 0 };
+      if (now - this.lastTap < 280) { // двойной тап с удержанием → перетаскивание
+        this.dragging = true; this.el.classList.add("dragging");
+        send({ t: "mdown", b: "left" });
+      }
+    } else if (this.g) {
+      this.g.max = Math.max(this.g.max, this.pts.size);
+    }
+  }
+  move(e) {
+    const p = this.pts.get(e.pointerId);
+    if (!p || !this.g) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    this.g.moved += Math.abs(dx) + Math.abs(dy);
+    if (this.pts.size === 1) moveBy(dx, dy);
+    else if (this.pts.size === 2) scrollBy(dx / 2, dy / 2); // каждый из двух пальцев даёт половину
+  }
+  up(e, cancelled) {
+    if (!this.pts.has(e.pointerId)) return;
+    this.pts.delete(e.pointerId);
+    if (this.pts.size > 0 || !this.g) return;
+    const g = this.g; this.g = null;
+    const quick = performance.now() - g.t0 < 260 && g.moved < 12;
+    if (this.dragging) {
+      this.dragging = false; this.el.classList.remove("dragging");
+      send({ t: "mup", b: "left" }); // короткий второй тап = двойной клик
+      this.lastTap = 0;
+      return;
+    }
+    if (cancelled || !quick) return;
+    haptic();
+    if (g.max === 1) { click("left"); this.lastTap = performance.now(); }
+    else if (g.max === 2) click("right");
+    else click("middle");
+  }
+}
+document.querySelectorAll("[data-pad]").forEach(el => new Pad(el));
+
+document.querySelectorAll(".mbtn").forEach(b => {
+  b.addEventListener("pointerdown", e => {
+    e.preventDefault(); haptic();
+    b.classList.add("down"); send({ t: "mdown", b: b.dataset.btn }); markModsUsed();
+    b.setPointerCapture(e.pointerId);
+  });
+  const up = () => {
+    if (!b.classList.contains("down")) return;
+    b.classList.remove("down"); send({ t: "mup", b: b.dataset.btn }); releaseLatched();
+  };
+  b.addEventListener("pointerup", up);
+  b.addEventListener("pointercancel", up);
+  b.addEventListener("contextmenu", e => e.preventDefault());
+});
+
+/* ================== вкладка «Текст» ================== */
+const ta = document.getElementById("ta");
+const liveBox = document.getElementById("live");
+const sendBtn = document.getElementById("sendText");
+const enterAfterWrap = document.getElementById("enterAfterWrap");
+let prev = "";
+
+function applyLive() {
+  liveBox.checked = settings.live;
+  sendBtn.hidden = settings.live;
+  enterAfterWrap.hidden = settings.live;
+  ta.setAttribute("enterkeyhint", settings.live ? "enter" : "send");
+  prev = ta.value;
+}
+function applyAutocorrect() {
+  ta.setAttribute("autocorrect", settings.autocorrect ? "on" : "off");
+  ta.setAttribute("autocapitalize", settings.autocorrect ? "sentences" : "off");
+  ta.spellcheck = settings.autocorrect;
+}
+// Разница между старым и новым текстом → Backspace'ы + новый текст.
+// Так работают и автоисправление, и диктовка, и правка в середине.
+function syncText() {
+  if (!settings.live) return;
+  const cur = ta.value;
+  if (cur === prev) return;
+  const a = Array.from(prev), b = Array.from(cur);
+  let p = 0;
+  while (p < a.length && p < b.length && a[p] === b[p]) p++;
+  const del = a.length - p;
+  const ins = b.slice(p).join("");
+  for (let i = 0; i < del; i++) { send({ t: "tap", k: "Backspace" }); }
+  if (ins) send({ t: "text", s: ins });
+  prev = cur;
+}
+ta.addEventListener("input", e => { if (!e.isComposing) syncText(); });
+ta.addEventListener("compositionend", syncText);
+ta.addEventListener("keydown", e => {
+  if (!settings.live) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+    return;
+  }
+  if (e.key === "Enter") {
+    e.preventDefault();
+    send({ t: "tap", k: "Enter" });
+    ta.value = ""; prev = "";
+  } else if (e.key === "Backspace" && ta.value === "") {
+    send({ t: "tap", k: "Backspace" });
+  }
+});
+liveBox.addEventListener("change", () => { settings.live = liveBox.checked; saveSettings(); applyLive(); });
+sendBtn.addEventListener("click", () => {
+  if (ta.value) send({ t: "text", s: ta.value });
+  if (document.getElementById("enterAfter").checked) send({ t: "tap", k: "Enter" });
+  ta.value = ""; prev = ""; ta.focus();
+});
+document.getElementById("clearText").addEventListener("click", () => { ta.value = ""; prev = ""; ta.focus(); });
+// кнопки над полем не должны забирать фокус (чтобы клавиатура iPhone не пряталась)
+document.getElementById("tkeys").addEventListener("pointerdown", e => e.preventDefault());
+document.querySelectorAll("#tkeys .key").forEach(k => k.addEventListener("pointerup", () => {
+  // после Enter/стрелок локальный буфер больше не соответствует тексту на компьютере
+  ta.value = ""; prev = "";
+}));
+
+/* ================== вкладка «Ещё» ================== */
+const ACTIONS = [
+  ["Копировать", "copy", { all: ["Mod", "KeyC"] }],
+  ["Вставить", "paste", { all: ["Mod", "KeyV"] }],
+  ["Вырезать", "cut", { all: ["Mod", "KeyX"] }],
+  ["Отменить", "undo", { all: ["Mod", "KeyZ"] }],
+  ["Повторить", "redo", { mac: ["Mod", "ShiftLeft", "KeyZ"], all: ["Mod", "KeyY"] }],
+  ["Выделить всё", "selall", { all: ["Mod", "KeyA"] }],
+  ["Сохранить", "save", { all: ["Mod", "KeyS"] }],
+  ["Найти", "find", { all: ["Mod", "KeyF"] }],
+  ["Переключить окно", "switch", { mac: ["MetaLeft", "Tab"], all: ["AltLeft", "Tab"] }],
+  ["Закрыть окно", "closewin", { mac: ["MetaLeft", "KeyQ"], all: ["AltLeft", "F4"] }],
+  ["Рабочий стол", "desktop", { mac: ["F11"], all: ["MetaLeft", "KeyD"] }],
+  ["Поиск", "search", { mac: ["MetaLeft", "Space"], windows: ["MetaLeft", "KeyS"], linux: ["MetaLeft"] }],
+  ["Скриншот", "shot", { mac: ["MetaLeft", "ShiftLeft", "Digit4"], windows: ["MetaLeft", "ShiftLeft", "KeyS"], linux: ["PrintScreen"] }],
+  ["Диспетчер задач", "taskmgr", { mac: ["MetaLeft", "AltLeft", "Escape"], windows: ["ControlLeft", "ShiftLeft", "Escape"] }],
+  ["Проводник", "explorer", { windows: ["MetaLeft", "KeyE"] }],
+  ["Меню Пуск", "start", { windows: ["MetaLeft"], linux: ["MetaLeft"] }],
+  ["Новая вкладка", "newtab", { all: ["Mod", "KeyT"] }],
+  ["Закрыть вкладку", "closetab", { all: ["Mod", "KeyW"] }],
+  ["Вернуть вкладку", "reopen", { all: ["Mod", "ShiftLeft", "KeyT"] }],
+  ["Обновить", "reload", { mac: ["Mod", "KeyR"], all: ["F5"] }],
+  ["Крупнее", "zin", { all: ["Mod", "Equal"] }],
+  ["Мельче", "zout", { all: ["Mod", "Minus"] }],
+  ["Раскладка", "layout", { special: "layout" }],
+];
+const KEYNAME = {
+  Mod: () => osName === "mac" ? "⌘" : "Ctrl", MetaLeft: () => osName === "mac" ? "⌘" : "Win",
+  AltLeft: () => osName === "mac" ? "⌥" : "Alt", ControlLeft: () => osName === "mac" ? "⌃" : "Ctrl",
+  ShiftLeft: () => "Shift", Escape: () => "Esc", Space: () => "Space", PrintScreen: () => "PrtSc",
+  Equal: () => "+", Minus: () => "−", Tab: () => "Tab",
+};
+const keyName = k => KEYNAME[k] ? KEYNAME[k]() : k.replace(/^Key|^Digit/, "");
+function renderActions() {
+  const box = document.getElementById("actions");
+  box.innerHTML = "";
+  for (const [label, id, def] of ACTIONS) {
+    let combo = def.special ? null : (def[osName || "windows"] || def.all);
+    if (!def.special && !combo) continue;
+    const b = document.createElement("button");
+    b.className = "act";
+    b.innerHTML = `<span></span><small></small>`;
+    b.firstChild.textContent = label;
+    b.lastChild.textContent = def.special ? "🌐" : combo.map(keyName).join(" + ");
+    b.addEventListener("click", () => {
+      haptic();
+      if (def.special === "layout") send({ t: "layout" });
+      else send({ t: "combo", keys: combo });
+      releaseLatched();
+    });
+    box.appendChild(b);
+  }
+}
+
+/* ================== подписи под ОС ================== */
+function applyOS() {
+  const mac = osName === "mac";
+  const set = (code, text) => document.querySelectorAll(`.key[data-c="${code}"] .m`).forEach(m => m.textContent = text);
+  set("MetaLeft", mac ? "⌘ cmd" : "⊞ Win");
+  set("AltLeft", mac ? "⌥ opt" : "Alt");
+  set("AltRight", mac ? "⌥ opt" : "Alt");
+  set("ControlLeft", mac ? "⌃ ctrl" : "Ctrl");
+  set("Backspace", mac ? "⌫ delete" : "⌫");
+  renderActions();
+}
+
+/* ================== вкладки ================== */
+const tabs = document.querySelectorAll(".tab");
+function showView(v) {
+  tabs.forEach(t => t.setAttribute("aria-selected", t.dataset.view === v ? "true" : "false"));
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("active", s.id === "v-" + v));
+  if (v === "text") ta.focus(); else ta.blur();
+  settings.view = v; saveSettings();
+}
+tabs.forEach(t => t.addEventListener("click", () => { haptic(); showView(t.dataset.view); }));
+
+/* ================== окно настроек ================== */
+const dlg = document.getElementById("settings");
+const bind = (id, key, kind = "checked", after) => {
+  const el = document.getElementById(id);
+  el[kind] = settings[key];
+  el.addEventListener(kind === "checked" ? "change" : "input", () => {
+    settings[key] = kind === "value" && el.type === "range" ? parseFloat(el.value) : el[kind];
+    saveSettings(); after && after();
+  });
+};
+function applyTheme() {
+  if (settings.theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", settings.theme);
+}
+const applyRu = () => document.body.classList.toggle("hide-ru", !settings.ru);
+bind("sSens", "sens", "value"); bind("sScroll", "scroll", "value");
+bind("sNatural", "natural"); bind("sHaptic", "haptic"); bind("sRepeat", "repeat");
+bind("sRu", "ru", "checked", applyRu); bind("sAutocorrect", "autocorrect", "checked", applyAutocorrect);
+bind("sTheme", "theme", "value", applyTheme);
+document.getElementById("openSettings").addEventListener("click", () => { dlg.showModal(); });
+document.getElementById("closeSettings").addEventListener("click", () => dlg.close());
+dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+
+/* ================== старт ================== */
+applyTheme(); applyRu(); applyLive(); applyAutocorrect(); renderActions();
+showView(["kb", "text", "pad", "more"].includes(settings.view) && settings.view !== "text" ? settings.view : "kb");
+document.addEventListener("gesturestart", e => e.preventDefault()); // без зума щипком
+connect();
+})();
+</script>
+</body>
+</html>
